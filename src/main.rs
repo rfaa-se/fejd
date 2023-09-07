@@ -36,7 +36,7 @@ fn get_resolution() -> (i32, i32) {
 
 fn main() {
     let (width, height) = get_resolution();
-    let (mut rh, rt) = raylib::init().size(width, height).title("skoj").build();
+    let (mut rh, rt) = raylib::init().size(width, height).title("fejd").build();
     let mut engine = Engine::new();
     engine.run(&mut rh, &rt);
 }
