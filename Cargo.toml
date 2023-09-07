@@ -9,3 +9,4 @@ edition = "2021"
 fastrand = "2.0.0"
 fixed = "1.23.1"
 raylib = { git = "https://github.com/litten2up/raylib-rs", features = ["wayland"], branch = "4.5.0" }
+toml = "0.7.6"
