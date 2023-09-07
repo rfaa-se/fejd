@@ -12,7 +12,7 @@ mod states;
 mod world;
 
 fn main() {
-    let (mut rh, rt) = raylib::init().size(1280, 720).title("skoj").build();
+    let (mut rh, rt) = raylib::init().size(1280, 720).title("fejd").build();
     let mut engine = Engine::new();
     engine.run(&mut rh, &rt);
 }
