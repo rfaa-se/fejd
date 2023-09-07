@@ -25,7 +25,15 @@ fn get_resolution() -> (i32, i32) {
                 let height = parsed_toml["resolution"]["height"].as_integer();
 
                 match (width, height) {
-                    (Some(_), Some(_)) => (),
+                    (Some(width), Some(height)) => {
+                        let width: Result<i32, _> = width.try_into();
+                        let height: Result<i32, _> = height.try_into();
+
+                        match (width, height) {
+                            (Ok(w32), Ok(h32)) => return (w32, h32),
+                            _ => println!("Failed to parse resolution"),
+                        }
+                    }
                     _ => println!("Failed to parse resolution"),
                 }
             }
