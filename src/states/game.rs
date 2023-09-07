@@ -5,6 +5,7 @@ use raylib::prelude::*;
 use crate::{
     bus::Bus,
     commands::Command,
+    entities::Entities,
     math::{Flint, FlintVec2},
     messages::{Message, RequestMessage, Sender, StateRequestMessage},
     world::{Map, Spawn, World},
@@ -126,6 +127,7 @@ impl GameState {
                         ],
                         width,
                         height,
+                        entities: Entities::new(),
                     };
 
                     self.world.init(pid as usize, players as usize, seed, map);

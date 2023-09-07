@@ -64,7 +64,7 @@ impl Engine {
                 self.update();
             }
 
-            let mut rdh = rh.begin_drawing(&rt);
+            let mut rdh = rh.begin_drawing(rt);
 
             // delta is used to smooth interpolation
             let delta = accumulator / self.managers.engine.size;
