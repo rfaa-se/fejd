@@ -90,8 +90,8 @@ impl World {
         self.players.clear();
     }
 
-    pub fn update(&mut self, cmds: &[Vec<Command>]) {
-        let pid = match self.pid {
+    pub fn update(&mut self, _cmds: &[Vec<Command>]) {
+        let _pid = match self.pid {
             Some(pid) => pid,
             None => return,
         };

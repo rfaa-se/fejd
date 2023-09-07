@@ -72,7 +72,7 @@ impl FlintTriangle {
         }
     }
 
-    pub fn set_rotation(mut self, _rotation: FlintVec2) -> Self {
+    pub fn set_rotation(self, _rotation: FlintVec2) -> Self {
         self
     }
 }
