@@ -30,7 +30,7 @@ fn get_resolution() -> (i32, i32) {
                         let height: Result<i32, _> = height.try_into();
 
                         match (width, height) {
-                            (Ok(w32), Ok(h32)) => return (w32, h32),
+                            (Ok(width), Ok(height)) => return (width, height),
                             _ => println!("Failed to parse resolution"),
                         }
                     }
