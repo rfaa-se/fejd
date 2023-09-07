@@ -21,10 +21,13 @@ fn get_resolution() -> (i32, i32) {
     match toml_content {
         Ok(parsed) => match parsed.parse::<Value>() {
             Ok(parsed_toml) => {
-                let width = parsed_toml["resolution"]["width"].as_integer().unwrap();
-                let height = parsed_toml["resolution"]["height"].as_integer().unwrap();
+                let width = parsed_toml["resolution"]["width"].as_integer();
+                let height = parsed_toml["resolution"]["height"].as_integer();
 
-                return (width.try_into().unwrap(), height.try_into().unwrap());
+                match (width, height) {
+                    (Some(_), Some(_)) => (),
+                    _ => println!("Failed to parse resolution"),
+                }
             }
             Err(_) => println!("Failed to parse config file."),
         },
