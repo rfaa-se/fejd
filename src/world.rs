@@ -61,8 +61,8 @@ impl World {
         let mut positions: Vec<usize> = (0..players).collect();
         self.rng.shuffle(&mut positions);
 
-        for item in positions.iter().take(players) {
-            let spawn = &map.spawns[*item];
+        for pid in positions.iter().take(players) {
+            let spawn = &map.spawns[*pid];
 
             self.players.push(Player {
                 color: Color::GREEN,
