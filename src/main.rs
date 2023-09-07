@@ -6,6 +6,7 @@ use engine::Engine;
 
 mod bus;
 mod commands;
+mod components;
 mod engine;
 mod entities;
 mod logs;
