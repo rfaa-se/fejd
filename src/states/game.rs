@@ -8,6 +8,7 @@ use crate::{
     entities::Entities,
     math::{Flint, FlintVec2},
     messages::{Message, RequestMessage, Sender, StateRequestMessage},
+    misc::RaylibRenderHandle,
     world::{Map, Spawn, World},
 };
 
@@ -77,12 +78,12 @@ impl GameState {
 
     pub fn message(&mut self, _sender: &Sender, _msg: &Message) {}
 
-    pub fn draw(&mut self, rdh: &mut RaylibDrawHandle, delta: f32) {
+    pub fn draw(&mut self, rrh: &mut RaylibRenderHandle, delta: f32) {
         if !self.init {
             return;
         }
 
-        self.world.draw(rdh, delta);
+        self.world.draw(rrh, delta);
     }
 
     fn action(&mut self, bus: &mut Bus) {

@@ -5,6 +5,7 @@ use raylib::prelude::*;
 use crate::{
     bus::Bus,
     messages::{Message, RequestMessage, Sender, StateMessage, StateRequestMessage},
+    misc::RaylibRenderHandle,
 };
 
 use super::{GameState, MenuState, State};
@@ -82,19 +83,19 @@ impl StateManager {
         }
     }
 
-    pub fn draw(&mut self, rdh: &mut RaylibDrawHandle, delta: f32) {
+    pub fn draw(&mut self, rrh: &mut RaylibRenderHandle, delta: f32) {
         match self.current {
             State::None => (),
-            State::Menu => self.states.menu.draw(rdh, delta),
-            State::Game => self.states.game.draw(rdh, delta),
+            State::Menu => self.states.menu.draw(rrh, delta),
+            State::Game => self.states.game.draw(rrh, delta),
         }
 
         // TODO: debug
         if true {
             // TODO: get width from render texture
-            rdh.draw_text(
+            rrh.draw_text(
                 &self.debug_text,
-                rdh.get_screen_width() / 2 - self.debug_text_w / 2,
+                rrh.get_screen_width() / 2 - self.debug_text_w / 2,
                 4,
                 10,
                 Color::WHITESMOKE,

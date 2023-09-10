@@ -6,6 +6,7 @@ use crate::{
     components::Body,
     entities::{Entities, Player},
     math::{Flint, FlintTriangle, FlintVec2},
+    misc::RaylibRenderHandle,
 };
 
 pub struct Spawn {
@@ -85,7 +86,7 @@ impl World {
         };
     }
 
-    pub fn draw(&mut self, rdh: &mut RaylibDrawHandle, delta: f32) {
+    pub fn draw(&mut self, rrh: &mut RaylibRenderHandle, delta: f32) {
         let (map, pid) = match (&self.map, &self.pid) {
             (Some(map), Some(pid)) => (map, pid),
             _ => return,
@@ -95,12 +96,12 @@ impl World {
         let player = &map.entities.players[*pid];
         let pos = player.position.lerp_center(delta);
 
-        self.camera.target.x = pos.x - (rdh.get_screen_width() / 2) as f32;
-        self.camera.target.y = pos.y - (rdh.get_screen_height() / 2) as f32;
+        self.camera.target.x = pos.x - (rrh.get_screen_width() / 2) as f32;
+        self.camera.target.y = pos.y - (rrh.get_screen_height() / 2) as f32;
 
         {
             // draw world
-            let mut rdh = rdh.begin_mode2D(self.camera);
+            let mut rdh = rrh.begin_mode2D(self.camera);
 
             rdh.draw_rectangle_lines(0, 0, map.width, map.height, Color::GREEN);
 
@@ -122,9 +123,9 @@ impl World {
         // TODO: debug
         if true {
             let text = format!("pid {}", pid);
-            rdh.draw_text(
+            rrh.draw_text(
                 &format!("pid {}", pid),
-                rdh.get_screen_width() - raylib::text::measure_text(&text, 10) - 4,
+                rrh.get_screen_width() - raylib::text::measure_text(&text, 10) - 4,
                 4,
                 10,
                 Color::WHITE,

@@ -12,6 +12,7 @@ mod entities;
 mod logs;
 mod math;
 mod messages;
+mod misc;
 mod states;
 mod world;
 
@@ -24,7 +25,7 @@ fn main() {
 
 fn get_resolution() -> (i32, i32) {
     // TODO: if we add more configs, consider moving parsing file to its own function
-    let default = (1280, 768);
+    let default = (1280, 720);
 
     let config = match fs::read_to_string("config.toml") {
         Ok(config) => config,

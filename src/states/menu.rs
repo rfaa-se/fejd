@@ -5,6 +5,7 @@ use raylib::prelude::*;
 use crate::{
     bus::Bus,
     messages::{Message, RequestMessage, Sender, StateRequestMessage},
+    misc::RaylibRenderHandle,
 };
 
 use super::State;
@@ -43,7 +44,7 @@ impl MenuState {
 
     pub fn message(&mut self, _sender: &Sender, _msg: &Message) {}
 
-    pub fn draw(&mut self, _rdh: &mut RaylibDrawHandle, _delta: f32) {}
+    pub fn draw(&mut self, _rrh: &mut RaylibRenderHandle, _delta: f32) {}
 
     fn action(&mut self, bus: &mut Bus) {
         while let Some(action) = self.actions.pop_first() {
