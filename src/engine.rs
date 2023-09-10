@@ -143,7 +143,7 @@ impl Engine {
             }
         }
 
-        // scale and draw the render etxture
+        // scale and draw the render texture
         let mut rdh = rh.begin_drawing(rt);
 
         rdh.clear_background(Color::WHITE);
@@ -167,17 +167,5 @@ impl Engine {
             0.0,
             Color::WHITE,
         );
-
-        // rdh.draw_texture_rec(
-        //     &rrt,
-        //     Rectangle {
-        //         x: 0.0,
-        //         y: 0.0,
-        //         width: rrt.texture.width as f32,
-        //         height: -rrt.texture.height as f32,
-        //     },
-        //     Vector2 { x: 0.0, y: 0.0 },
-        //     Color::WHITE,
-        // );
     }
 }
