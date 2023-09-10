@@ -24,8 +24,8 @@ pub struct Managers {
 }
 
 impl Engine {
-    pub const WIDTH: i32 = 960;
-    pub const HEIGHT: i32 = 540;
+    pub const WIDTH: i32 = 1280;
+    pub const HEIGHT: i32 = 720;
 
     pub fn new() -> Self {
         Engine {
