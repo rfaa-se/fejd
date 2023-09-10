@@ -148,6 +148,8 @@ impl Engine {
 
         rdh.clear_background(Color::WHITE);
 
+        let scale = rdh.get_window_scale_dpi();
+
         // NOTE: Render texture must be y-flipped due to default OpenGL coordinates (left-bottom)
         rdh.draw_texture_pro(
             &rrt,
@@ -160,8 +162,8 @@ impl Engine {
             Rectangle {
                 x: 0.0,
                 y: 0.0,
-                width: rdh.get_screen_width() as f32,
-                height: rdh.get_screen_height() as f32,
+                width: rrt.texture.width as f32 / scale.x, //1920 as f32,
+                height: rrt.texture.height as f32 / scale.y, //1080 as f32,
             },
             Vector2 { x: 0.0, y: 0.0 },
             0.0,
