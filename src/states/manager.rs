@@ -4,6 +4,7 @@ use raylib::prelude::*;
 
 use crate::{
     bus::Bus,
+    engine::Engine,
     messages::{Message, RequestMessage, Sender, StateMessage, StateRequestMessage},
     misc::RaylibRenderHandle,
 };
@@ -95,7 +96,7 @@ impl StateManager {
             // TODO: get width from render texture
             rrh.draw_text(
                 &self.debug_text,
-                rrh.get_screen_width() / 2 - self.debug_text_w / 2,
+                Engine::WIDTH / 2 - self.debug_text_w / 2,
                 4,
                 10,
                 Color::WHITESMOKE,

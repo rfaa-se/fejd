@@ -24,6 +24,9 @@ pub struct Managers {
 }
 
 impl Engine {
+    pub const WIDTH: i32 = 960;
+    pub const HEIGHT: i32 = 540;
+
     pub fn new() -> Self {
         Engine {
             managers: Managers {
@@ -42,7 +45,7 @@ impl Engine {
         // TODO: make sure the aspect ratio is the same as the screen resolution,
         // otherwise we should draw black borders,
         // game aspect ratio is 16:9
-        let mut rrt = match rh.load_render_texture(rt, 1280, 720) {
+        let mut rrt = match rh.load_render_texture(rt, Self::WIDTH as u32, Self::HEIGHT as u32) {
             Ok(rrt) => rrt,
             Err(e) => {
                 panic!("Could not create render texture: {}", e);
@@ -148,8 +151,6 @@ impl Engine {
 
         rdh.clear_background(Color::WHITE);
 
-        let scale = rdh.get_window_scale_dpi();
-
         // NOTE: Render texture must be y-flipped due to default OpenGL coordinates (left-bottom)
         rdh.draw_texture_pro(
             &rrt,
@@ -162,8 +163,8 @@ impl Engine {
             Rectangle {
                 x: 0.0,
                 y: 0.0,
-                width: rrt.texture.width as f32 / scale.x, //1920 as f32,
-                height: rrt.texture.height as f32 / scale.y, //1080 as f32,
+                width: rdh.get_screen_width() as f32,
+                height: rdh.get_screen_height() as f32,
             },
             Vector2 { x: 0.0, y: 0.0 },
             0.0,

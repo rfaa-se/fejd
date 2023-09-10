@@ -4,6 +4,7 @@ use raylib::prelude::*;
 use crate::{
     commands::Command,
     components::Body,
+    engine::Engine,
     entities::{Entities, Player},
     math::{Flint, FlintTriangle, FlintVec2},
     misc::RaylibRenderHandle,
@@ -96,8 +97,8 @@ impl World {
         let player = &map.entities.players[*pid];
         let pos = player.position.lerp_center(delta);
 
-        self.camera.target.x = pos.x - (rrh.get_screen_width() / 2) as f32;
-        self.camera.target.y = pos.y - (rrh.get_screen_height() / 2) as f32;
+        self.camera.target.x = pos.x - (Engine::WIDTH / 2) as f32;
+        self.camera.target.y = pos.y - (Engine::HEIGHT / 2) as f32;
 
         {
             // draw world
@@ -125,7 +126,7 @@ impl World {
             let text = format!("pid {}", pid);
             rrh.draw_text(
                 &format!("pid {}", pid),
-                rrh.get_screen_width() - raylib::text::measure_text(&text, 10) - 4,
+                Engine::WIDTH - raylib::text::measure_text(&text, 10) - 4,
                 4,
                 10,
                 Color::WHITE,
