@@ -30,7 +30,7 @@ impl Body<FlintTriangle> {
 
     pub fn lerp_center(&self, amount: f32) -> Vector2 {
         self.current
-            .calc_center()
-            .lerp(&self.old.calc_center(), amount)
+            .get_centroid()
+            .lerp(&self.old.get_centroid(), amount)
     }
 }

@@ -24,8 +24,12 @@ pub struct Managers {
 }
 
 impl Engine {
-    pub const WIDTH: i32 = 1280;
-    pub const HEIGHT: i32 = 720;
+    // pub const WIDTH: i32 = 1280;
+    // pub const HEIGHT: i32 = 720;
+    // pub const WIDTH: i32 = 960;
+    // pub const HEIGHT: i32 = 540;
+    pub const WIDTH: i32 = 640;
+    pub const HEIGHT: i32 = 360;
 
     pub fn new() -> Self {
         Engine {
@@ -123,8 +127,8 @@ impl Engine {
         rrt: &mut RenderTexture2D,
         delta: f32,
     ) {
-        // draw everything on the render texture
         {
+            // draw everything on the render texture
             let mut rrh = rh.begin_texture_mode(rt, rrt);
             rrh.clear_background(Color::BLACK);
 
@@ -150,8 +154,15 @@ impl Engine {
         let mut rdh = rh.begin_drawing(rt);
 
         rdh.clear_background(Color::WHITE);
-
-        // NOTE: Render texture must be y-flipped due to default OpenGL coordinates (left-bottom)
+        // rdh.draw_texture_n_patch(&rrt, NPatchInfo {
+        //     source: todo!(),
+        //     left: todo!(),
+        //     top: todo!(),
+        //     right: todo!(),
+        //     bottom: todo!(),
+        //     layout: NPatchLayout::NPATCH_NINE_PATCH,
+        // }, , , , )
+        // render texture must be y-flipped due to default OpenGL coordinates (left-bottom)
         rdh.draw_texture_pro(
             &rrt,
             Rectangle {

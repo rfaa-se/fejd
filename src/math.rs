@@ -37,38 +37,43 @@ impl From<FlintVec2> for Vector2 {
 }
 
 impl FlintTriangle {
-    pub fn from_center(
-        center: FlintVec2,
+    pub fn from_centroid(
+        centroid: FlintVec2,
         width: Flint,
         height: Flint,
         rotation: FlintVec2,
     ) -> Self {
         // bottom left
         let v1 = FlintVec2::new(
-            Flint::from_num(center.x - (width / 2)),
-            Flint::from_num(center.y + (height / 2)),
+            // Flint::from_num(centroid.x - (width / 2)),
+            // Flint::from_num(centroid.y + (height / 2)),
+            Flint::from_num(centroid.x - (width / 2)),
+            Flint::from_num(centroid.y + (height / 3)),
         );
 
         // top middle
         let v2 = FlintVec2::new(
-            Flint::from_num(center.x),
-            Flint::from_num(center.y - (height / 2)),
+            // Flint::from_num(centroid.x),
+            // Flint::from_num(centroid.y - (height / 2)),
+            Flint::from_num(centroid.x),
+            Flint::from_num(centroid.y - ((height / 3) * 2)),
         );
 
         // bottom right
         let v3 = FlintVec2::new(
-            Flint::from_num(center.x + (width / 2)),
-            Flint::from_num(center.y + (height / 2)),
+            // Flint::from_num(centroid.x + (width / 2)),
+            // Flint::from_num(centroid.y + (height / 2)),
+            Flint::from_num(centroid.x + (width / 2)),
+            Flint::from_num(centroid.y + (height / 3)),
         );
 
         FlintTriangle { v1, v2, v3 }.set_rotation(rotation)
     }
 
-    pub fn calc_center(&self) -> FlintVec2 {
-        // TODO: probably need to rotate to make math work in case of rotation?
+    pub fn get_centroid(&self) -> FlintVec2 {
         FlintVec2 {
-            x: self.v1.x + ((self.v3.x - self.v1.x) / 2).round(),
-            y: self.v2.y + ((self.v1.y - self.v2.y) / 2).round(),
+            x: ((self.v1.x + self.v2.x + self.v3.x) / 3),
+            y: ((self.v1.y + self.v2.y + self.v3.y) / 3),
         }
     }
 

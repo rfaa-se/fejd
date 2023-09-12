@@ -60,7 +60,7 @@ impl World {
 
             map.entities.players.push(Player {
                 color: Color::GREEN,
-                position: Body::new(FlintTriangle::from_center(
+                position: Body::new(FlintTriangle::from_centroid(
                     spawn.point,
                     Flint::from_num(27),
                     Flint::from_num(31),
@@ -68,6 +68,14 @@ impl World {
                 )),
             });
         }
+
+        println!(
+            "{} {}",
+            map.entities.players[0].position.current.v2.x,
+            map.entities.players[0].position.current.get_centroid().x
+        );
+
+        println!("ROUND {}", (Flint::from_num(27) / 2).round());
 
         self.pid = Some(pid);
         self.seed = Some(seed);
@@ -112,6 +120,24 @@ impl World {
                     player.position.lerp_v2(delta),
                     player.position.lerp_v3(delta),
                     player.color,
+                );
+
+                rdh.draw_line_v(
+                    player.position.lerp_v1(delta),
+                    player.position.lerp_v2(delta),
+                    Color::BLUE,
+                );
+
+                rdh.draw_line_v(
+                    player.position.lerp_v2(delta),
+                    player.position.lerp_v3(delta),
+                    Color::RED,
+                );
+
+                rdh.draw_line_v(
+                    player.position.lerp_v3(delta),
+                    player.position.lerp_v1(delta),
+                    Color::YELLOW,
                 );
 
                 let point = map.spawns[i].point;
