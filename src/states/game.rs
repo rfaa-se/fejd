@@ -20,12 +20,14 @@ pub struct GameState {
     pid: u8,
     players: u8,
     init: bool,
+    cmds: Vec<Command>,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
 enum Action {
     Initialize { pid: u8, players: u8, seed: u64 },
     GotoMenu,
+    Command(Command),
 }
 
 impl GameState {
@@ -36,6 +38,7 @@ impl GameState {
             pid: 0,
             players: 0,
             init: false,
+            cmds: Vec::new(),
         }
     }
 
@@ -62,6 +65,14 @@ impl GameState {
         if rh.is_key_pressed(KeyboardKey::KEY_E) {
             self.actions.insert(Action::GotoMenu);
         }
+
+        if rh.is_key_down(KeyboardKey::KEY_LEFT) {
+            self.actions.insert(Action::Command(Command::Left));
+        }
+
+        if rh.is_key_down(KeyboardKey::KEY_RIGHT) {
+            self.actions.insert(Action::Command(Command::Right));
+        }
     }
 
     pub fn update(&mut self, bus: &mut Bus) {
@@ -71,9 +82,19 @@ impl GameState {
             return;
         }
 
-        let cmds = vec![vec![Command::Nop]];
+        // let cmds = vec![vec![Command::Nop]];
+        let mut cmds = Vec::new();
+        for i in 0..self.players {
+            if i == self.pid {
+                cmds.push(self.cmds.clone());
+            } else {
+                cmds.push(vec![Command::Nop]);
+            }
+        }
 
         self.world.update(&cmds);
+
+        self.cmds.clear();
     }
 
     pub fn message(&mut self, _sender: &Sender, _msg: &Message) {}
@@ -91,8 +112,8 @@ impl GameState {
             match action {
                 Action::Initialize { pid, players, seed } => {
                     // TODO: this should be configurable
-                    let width = 600;
-                    let height = 600;
+                    let width = 400;
+                    let height = 400;
                     let map = Map {
                         // four spawn points
                         spawns: vec![
@@ -142,6 +163,10 @@ impl GameState {
                     bus.send(Message::Request(RequestMessage::State(
                         StateRequestMessage::SetState(State::Menu),
                     )));
+                }
+                Action::Command(cmd) => {
+                    // TODO: these should be sent via net
+                    self.cmds.push(cmd);
                 }
             }
         }

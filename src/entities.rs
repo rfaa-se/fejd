@@ -1,6 +1,9 @@
 use raylib::prelude::*;
 
-use crate::{components::Body, math::FlintTriangle};
+use crate::{
+    components::Body,
+    math::{Flint, FlintTriangle},
+};
 
 pub struct Entities {
     pub players: Vec<Player>,
@@ -8,7 +11,8 @@ pub struct Entities {
 
 pub struct Player {
     pub color: Color,
-    pub position: Body<FlintTriangle>,
+    pub body: Body<FlintTriangle>,
+    pub rotation_speed: Flint,
 }
 
 impl Entities {

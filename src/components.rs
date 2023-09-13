@@ -1,18 +1,21 @@
 use raylib::prelude::Vector2;
 
-use crate::math::FlintTriangle;
+use crate::math::{FlintTriangle, FlintVec2};
 
 #[derive(Clone, Copy)]
 pub struct Body<T> {
     pub current: T,
     pub old: T,
+    pub rotation: FlintVec2,
 }
 
 impl Body<FlintTriangle> {
-    pub fn new(pos: FlintTriangle) -> Self {
+    pub fn new(pos: FlintTriangle, rot: FlintVec2) -> Self {
+        pos.set_rotation(rot);
         Body {
             current: pos,
             old: pos,
+            rotation: rot,
         }
     }
 

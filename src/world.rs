@@ -60,22 +60,31 @@ impl World {
 
             map.entities.players.push(Player {
                 color: Color::GREEN,
-                position: Body::new(FlintTriangle::from_centroid(
-                    spawn.point,
-                    Flint::from_num(27),
-                    Flint::from_num(31),
+                body: Body::new(
+                    FlintTriangle::from_centroid(
+                        spawn.point,
+                        Flint::from_num(27),
+                        Flint::from_num(31),
+                        spawn.rotation,
+                    ),
                     spawn.rotation,
-                )),
+                ),
+                // rotation speed is in radians
+                rotation_speed: (Flint::from_num(10) / 180) * Flint::PI,
             });
         }
 
         println!(
             "{} {}",
-            map.entities.players[0].position.current.v2.x,
-            map.entities.players[0].position.current.get_centroid().x
+            map.entities.players[0].body.current.v2.x,
+            map.entities.players[0].body.current.get_centroid().x
         );
 
         println!("ROUND {}", (Flint::from_num(27) / 2).round());
+        println!(
+            "CENTROID {:?}",
+            map.entities.players[0].body.current.get_centroid()
+        );
 
         self.pid = Some(pid);
         self.seed = Some(seed);
@@ -88,11 +97,22 @@ impl World {
         self.map = None;
     }
 
-    pub fn update(&mut self, _cmds: &[Vec<Command>]) {
-        let _pid = match self.pid {
-            Some(pid) => pid,
+    pub fn update(&mut self, cmds: &[Vec<Command>]) {
+        // let _pid = match self.pid {
+        //     Some(pid) => pid,
+        //     None => return,
+        // };
+
+        let mut map = match self.map.as_mut() {
+            Some(map) => map,
             None => return,
         };
+
+        for (pid, cmds) in cmds.iter().enumerate() {
+            for cmd in cmds.iter() {
+                cmd.exec(pid, &mut map);
+            }
+        }
     }
 
     pub fn draw(&mut self, rrh: &mut RaylibRenderHandle, delta: f32) {
@@ -103,7 +123,7 @@ impl World {
 
         // make camera follow player
         let player = &map.entities.players[*pid];
-        let pos = player.position.lerp_center(delta);
+        let pos = player.body.lerp_center(delta);
 
         self.camera.target.x = pos.x - (Engine::WIDTH / 2) as f32;
         self.camera.target.y = pos.y - (Engine::HEIGHT / 2) as f32;
@@ -116,27 +136,27 @@ impl World {
 
             for (i, player) in map.entities.players.iter().enumerate() {
                 rdh.draw_triangle_lines(
-                    player.position.lerp_v1(delta),
-                    player.position.lerp_v2(delta),
-                    player.position.lerp_v3(delta),
+                    player.body.lerp_v1(delta),
+                    player.body.lerp_v2(delta),
+                    player.body.lerp_v3(delta),
                     player.color,
                 );
 
                 rdh.draw_line_v(
-                    player.position.lerp_v1(delta),
-                    player.position.lerp_v2(delta),
+                    player.body.lerp_v1(delta),
+                    player.body.lerp_v2(delta),
                     Color::BLUE,
                 );
 
                 rdh.draw_line_v(
-                    player.position.lerp_v2(delta),
-                    player.position.lerp_v3(delta),
+                    player.body.lerp_v2(delta),
+                    player.body.lerp_v3(delta),
                     Color::RED,
                 );
 
                 rdh.draw_line_v(
-                    player.position.lerp_v3(delta),
-                    player.position.lerp_v1(delta),
+                    player.body.lerp_v3(delta),
+                    player.body.lerp_v1(delta),
                     Color::YELLOW,
                 );
 
@@ -144,7 +164,30 @@ impl World {
                 rdh.draw_pixel(point.x.to_num(), point.y.to_num(), Color::YELLOW);
             }
 
+            // debug stuff
             rdh.draw_pixel(pos.x as i32, pos.y as i32, Color::RED);
+
+            let rad = cordic::atan2(player.body.rotation.y, player.body.rotation.x);
+            let rot = (rad * 180) / Flint::PI;
+            rdh.draw_rectangle_pro(
+                Rectangle {
+                    x: pos.x + 30.0,
+                    y: pos.y,
+                    width: 10.0,
+                    height: 10.0,
+                },
+                Vector2::new(5.0, 5.0),
+                rot.to_num(),
+                Color::ORANGE,
+            );
+
+            rdh.draw_text(
+                &format!("{:?}", player.body.rotation),
+                pos.x as i32 + 30,
+                pos.y as i32 - 20,
+                10,
+                Color::WHITESMOKE,
+            );
         }
 
         // TODO: debug
