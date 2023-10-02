@@ -114,13 +114,14 @@ impl GameState {
                     // TODO: this should be configurable
                     let width = 400;
                     let height = 400;
+                    let rotation = FlintVec2::new(Flint::from_num(1), Flint::from_num(0));
                     let map = Map {
-                        // four spawn points
+                        // four spawn points for this map
                         spawns: vec![
                             // top left
                             Spawn {
                                 point: FlintVec2::new(Flint::from_num(100), Flint::from_num(100)),
-                                rotation: FlintVec2::new(Flint::from_num(0), Flint::from_num(0)),
+                                rotation: rotation,
                             },
                             // top right
                             Spawn {
@@ -128,7 +129,7 @@ impl GameState {
                                     Flint::from_num(width - 100),
                                     Flint::from_num(100),
                                 ),
-                                rotation: FlintVec2::new(Flint::from_num(0), Flint::from_num(0)),
+                                rotation: rotation,
                             },
                             // bottom left
                             Spawn {
@@ -136,7 +137,7 @@ impl GameState {
                                     Flint::from_num(100),
                                     Flint::from_num(height - 100),
                                 ),
-                                rotation: FlintVec2::new(Flint::from_num(0), Flint::from_num(0)),
+                                rotation: rotation,
                             },
                             // bottom right
                             Spawn {
@@ -144,7 +145,7 @@ impl GameState {
                                     Flint::from_num(width - 100),
                                     Flint::from_num(height - 100),
                                 ),
-                                rotation: FlintVec2::new(Flint::from_num(0), Flint::from_num(0)),
+                                rotation: rotation,
                             },
                         ],
                         width,

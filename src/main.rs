@@ -13,6 +13,7 @@ mod logs;
 mod math;
 mod messages;
 mod misc;
+mod renderables;
 mod states;
 mod world;
 

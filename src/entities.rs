@@ -1,8 +1,7 @@
-use raylib::prelude::*;
-
 use crate::{
     components::Body,
     math::{Flint, FlintTriangle},
+    renderables::{RenderTriangle, Renderable},
 };
 
 pub struct Entities {
@@ -10,9 +9,9 @@ pub struct Entities {
 }
 
 pub struct Player {
-    pub color: Color,
     pub body: Body<FlintTriangle>,
     pub rotation_speed: Flint,
+    pub render: Renderable<RenderTriangle>,
 }
 
 impl Entities {

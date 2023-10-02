@@ -8,6 +8,6 @@ edition = "2021"
 [dependencies]
 cordic = "0.1.5"
 fastrand = "2.0.0"
-fixed = "1.23.1"
+fixed = "1.24.0"
 raylib = { git = "https://github.com/litten2up/raylib-rs", features = ["wayland"], branch = "4.5.0" }
 toml = "0.7.6"

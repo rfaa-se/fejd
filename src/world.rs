@@ -8,6 +8,7 @@ use crate::{
     entities::{Entities, Player},
     math::{Flint, FlintTriangle, FlintVec2},
     misc::RaylibRenderHandle,
+    renderables::Renderable,
 };
 
 pub struct Spawn {
@@ -58,33 +59,31 @@ impl World {
         for pid in positions.iter().take(players) {
             let spawn = &map.spawns[*pid];
 
-            map.entities.players.push(Player {
-                color: Color::GREEN,
-                body: Body::new(
-                    FlintTriangle::from_centroid(
-                        spawn.point,
-                        Flint::from_num(27),
-                        Flint::from_num(31),
-                        spawn.rotation,
-                    ),
-                    spawn.rotation,
+            let body = Body {
+                shape: FlintTriangle::from_centroid(
+                    &spawn.point,
+                    Flint::from_num(27),
+                    Flint::from_num(31),
                 ),
-                // rotation speed is in radians
-                rotation_speed: (Flint::from_num(10) / 180) * Flint::PI,
+                rotation: spawn.rotation,
+            };
+
+            let render = Renderable::new(
+                Color::GREEN,
+                &body.shape.into(),
+                spawn
+                    .rotation
+                    .y
+                    .to_num::<f32>()
+                    .atan2(spawn.rotation.x.to_num()),
+            );
+
+            map.entities.players.push(Player {
+                body,
+                rotation_speed: Flint::from_num(0.12),
+                render,
             });
         }
-
-        println!(
-            "{} {}",
-            map.entities.players[0].body.current.v2.x,
-            map.entities.players[0].body.current.get_centroid().x
-        );
-
-        println!("ROUND {}", (Flint::from_num(27) / 2).round());
-        println!(
-            "CENTROID {:?}",
-            map.entities.players[0].body.current.get_centroid()
-        );
 
         self.pid = Some(pid);
         self.seed = Some(seed);
@@ -108,10 +107,25 @@ impl World {
             None => return,
         };
 
+        // update renderable past bodies,
+        // this is so we can interpolate between past and live bodies
+        for player in map.entities.players.iter_mut() {
+            player.render.past = player.render.live;
+        }
+
+        // execute all player commands
         for (pid, cmds) in cmds.iter().enumerate() {
             for cmd in cmds.iter() {
                 cmd.exec(pid, &mut map);
             }
+        }
+
+        // update world
+        // TODO: this is where acceleration, hit collision, etc, is calculated
+
+        // update renderable live bodies
+        for player in map.entities.players.iter_mut() {
+            player.render.live = player.body.into();
         }
     }
 
@@ -123,71 +137,23 @@ impl World {
 
         // make camera follow player
         let player = &map.entities.players[*pid];
-        let pos = player.body.lerp_center(delta);
+        let target = player.render.lerp_centroid(delta);
 
-        self.camera.target.x = pos.x - (Engine::WIDTH / 2) as f32;
-        self.camera.target.y = pos.y - (Engine::HEIGHT / 2) as f32;
+        self.camera.target.x = target.x - (Engine::WIDTH / 2) as f32;
+        self.camera.target.y = target.y - (Engine::HEIGHT / 2) as f32;
 
         {
-            // draw world
-            let mut rdh = rrh.begin_mode2D(self.camera);
+            let mut rrh = rrh.begin_mode2D(self.camera);
 
-            rdh.draw_rectangle_lines(0, 0, map.width, map.height, Color::GREEN);
+            // TODO: cull entities not currently shown on screen
 
-            for (i, player) in map.entities.players.iter().enumerate() {
-                rdh.draw_triangle_lines(
-                    player.body.lerp_v1(delta),
-                    player.body.lerp_v2(delta),
-                    player.body.lerp_v3(delta),
-                    player.color,
-                );
+            // draw world outlines
+            rrh.draw_rectangle_lines(0, 0, map.width, map.height, Color::GREEN);
 
-                rdh.draw_line_v(
-                    player.body.lerp_v1(delta),
-                    player.body.lerp_v2(delta),
-                    Color::BLUE,
-                );
-
-                rdh.draw_line_v(
-                    player.body.lerp_v2(delta),
-                    player.body.lerp_v3(delta),
-                    Color::RED,
-                );
-
-                rdh.draw_line_v(
-                    player.body.lerp_v3(delta),
-                    player.body.lerp_v1(delta),
-                    Color::YELLOW,
-                );
-
-                let point = map.spawns[i].point;
-                rdh.draw_pixel(point.x.to_num(), point.y.to_num(), Color::YELLOW);
+            // draw the players
+            for (_, player) in map.entities.players.iter().enumerate() {
+                player.render.draw(&mut rrh, delta);
             }
-
-            // debug stuff
-            rdh.draw_pixel(pos.x as i32, pos.y as i32, Color::RED);
-
-            let rad = cordic::atan2(player.body.rotation.y, player.body.rotation.x);
-            let rot = (rad * 180) / Flint::PI;
-            rdh.draw_rectangle_pro(
-                Rectangle {
-                    x: pos.x + 30.0,
-                    y: pos.y,
-                    width: 10.0,
-                    height: 10.0,
-                },
-                Vector2::new(5.0, 5.0),
-                rot.to_num(),
-                Color::ORANGE,
-            );
-
-            rdh.draw_text(
-                &format!("{:?}", player.body.rotation),
-                pos.x as i32 + 30,
-                pos.y as i32 - 20,
-                10,
-                Color::WHITESMOKE,
-            );
         }
 
         // TODO: debug
