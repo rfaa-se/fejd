@@ -6,7 +6,7 @@ use crate::{
     bus::Bus,
     commands::Command,
     entities::Entities,
-    math::{Flint, FlintVec2},
+    math::{rotations, Flint, FlintVec2},
     messages::{Message, RequestMessage, Sender, StateRequestMessage},
     misc::RaylibRenderHandle,
     world::{Map, Spawn, World},
@@ -67,11 +67,19 @@ impl GameState {
         }
 
         if rh.is_key_down(KeyboardKey::KEY_LEFT) {
-            self.actions.insert(Action::Command(Command::Left));
+            self.actions.insert(Action::Command(Command::RotateLeft));
         }
 
         if rh.is_key_down(KeyboardKey::KEY_RIGHT) {
-            self.actions.insert(Action::Command(Command::Right));
+            self.actions.insert(Action::Command(Command::RotateRight));
+        }
+
+        if rh.is_key_down(KeyboardKey::KEY_UP) {
+            self.actions.insert(Action::Command(Command::Accelerate));
+        }
+
+        if rh.is_key_down(KeyboardKey::KEY_DOWN) {
+            self.actions.insert(Action::Command(Command::Decelerate));
         }
     }
 
@@ -114,14 +122,13 @@ impl GameState {
                     // TODO: this should be configurable
                     let width = 400;
                     let height = 400;
-                    let rotation = FlintVec2::new(Flint::from_num(1), Flint::from_num(0));
                     let map = Map {
                         // four spawn points for this map
                         spawns: vec![
                             // top left
                             Spawn {
                                 point: FlintVec2::new(Flint::from_num(100), Flint::from_num(100)),
-                                rotation: rotation,
+                                rotation: rotations::left(),
                             },
                             // top right
                             Spawn {
@@ -129,7 +136,7 @@ impl GameState {
                                     Flint::from_num(width - 100),
                                     Flint::from_num(100),
                                 ),
-                                rotation: rotation,
+                                rotation: rotations::down(),
                             },
                             // bottom left
                             Spawn {
@@ -137,7 +144,7 @@ impl GameState {
                                     Flint::from_num(100),
                                     Flint::from_num(height - 100),
                                 ),
-                                rotation: rotation,
+                                rotation: rotations::right(),
                             },
                             // bottom right
                             Spawn {
@@ -145,7 +152,7 @@ impl GameState {
                                     Flint::from_num(width - 100),
                                     Flint::from_num(height - 100),
                                 ),
-                                rotation: rotation,
+                                rotation: rotations::up(),
                             },
                         ],
                         width,

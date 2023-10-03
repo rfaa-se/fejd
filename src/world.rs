@@ -3,7 +3,7 @@ use raylib::prelude::*;
 
 use crate::{
     commands::Command,
-    components::Body,
+    components::{Body, Motion},
     engine::Engine,
     entities::{Entities, Player},
     math::{Flint, FlintTriangle, FlintVec2},
@@ -78,9 +78,16 @@ impl World {
                     .atan2(spawn.rotation.x.to_num()),
             );
 
+            let motion = Motion {
+                speed: Flint::from_num(0),
+                max_speed: Flint::from_num(12),
+                acceleration: Flint::from_num(0.4),
+                rotation_speed: Flint::from_num(0.12),
+            };
+
             map.entities.players.push(Player {
                 body,
-                rotation_speed: Flint::from_num(0.12),
+                motion,
                 render,
             });
         }
@@ -107,6 +114,8 @@ impl World {
             None => return,
         };
 
+        // TODO: move all below logic to systems
+
         // update renderable past bodies,
         // this is so we can interpolate between past and live bodies
         for player in map.entities.players.iter_mut() {
@@ -120,8 +129,13 @@ impl World {
             }
         }
 
-        // update world
-        // TODO: this is where acceleration, hit collision, etc, is calculated
+        // update motion
+        for player in map.entities.players.iter_mut() {
+            let velocity = player.body.rotation * player.motion.speed;
+            player.body.shape.v1 += velocity;
+            player.body.shape.v2 += velocity;
+            player.body.shape.v3 += velocity;
+        }
 
         // update renderable live bodies
         for player in map.entities.players.iter_mut() {
@@ -139,13 +153,14 @@ impl World {
         let player = &map.entities.players[*pid];
         let target = player.render.lerp_centroid(delta);
 
-        self.camera.target.x = target.x - (Engine::WIDTH / 2) as f32;
-        self.camera.target.y = target.y - (Engine::HEIGHT / 2) as f32;
+        self.camera.target.x = target.x - Engine::WIDTH as f32 / 2.0;
+        self.camera.target.y = target.y - Engine::HEIGHT as f32 / 2.0;
 
         {
             let mut rrh = rrh.begin_mode2D(self.camera);
 
             // TODO: cull entities not currently shown on screen
+            // TODO: move all below to render systems
 
             // draw world outlines
             rrh.draw_rectangle_lines(0, 0, map.width, map.height, Color::GREEN);

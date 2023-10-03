@@ -1,6 +1,6 @@
 use crate::{
-    components::Body,
-    math::{Flint, FlintTriangle},
+    components::{Body, Motion},
+    math::FlintTriangle,
     renderables::{RenderTriangle, Renderable},
 };
 
@@ -10,7 +10,7 @@ pub struct Entities {
 
 pub struct Player {
     pub body: Body<FlintTriangle>,
-    pub rotation_speed: Flint,
+    pub motion: Motion,
     pub render: Renderable<RenderTriangle>,
 }
 

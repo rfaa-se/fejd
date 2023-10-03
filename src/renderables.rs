@@ -58,16 +58,13 @@ impl From<Body<FlintTriangle>> for RenderBody<RenderTriangle> {
 
 impl Renderable<RenderTriangle> {
     pub fn new(color: Color, shape: &RenderTriangle, rotation: f32) -> Self {
+        let mut shape = shape.clone();
+        shape.rotate(rotation);
+
         Renderable {
             color,
-            live: RenderBody {
-                shape: shape.clone(),
-                rotation,
-            },
-            past: RenderBody {
-                shape: shape.clone(),
-                rotation,
-            },
+            live: RenderBody { shape, rotation },
+            past: RenderBody { shape, rotation },
         }
     }
 
@@ -96,6 +93,25 @@ impl Renderable<RenderTriangle> {
             self.lerp_v2(delta),
             self.lerp_v3(delta),
             self.color,
+        );
+
+        rrh.draw_circle_v(self.lerp_v1(delta), 1.0, Color::RED);
+        rrh.draw_circle_v(self.lerp_v2(delta), 1.0, Color::BLUE);
+        rrh.draw_circle_v(self.lerp_v3(delta), 1.0, Color::YELLOW);
+
+        let cen = self.lerp_centroid(delta);
+        let (x, y) = (cen.x.round() as i32, cen.y.round() as i32);
+
+        rrh.draw_text(
+            &format!(
+                "{} {}",
+                self.live.rotation.to_degrees().round() + 180.0,
+                self.live.rotation
+            ),
+            x,
+            y - 32,
+            10,
+            Color::WHITESMOKE,
         );
     }
 }
