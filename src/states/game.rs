@@ -1,12 +1,12 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashMap};
 
 use raylib::prelude::*;
 
 use crate::{
     bus::Bus,
     commands::Command,
-    entities::Entities,
-    math::{rotations, Flint, FlintVec2},
+    engine::Engine,
+    math::{Flint, FlintVec2},
     messages::{Message, RequestMessage, Sender, StateRequestMessage},
     misc::RaylibRenderHandle,
     world::{Map, Spawn, World},
@@ -17,10 +17,14 @@ use super::State;
 pub struct GameState {
     actions: BTreeSet<Action>,
     world: World,
+    tick: u64,
     pid: u8,
     players: u8,
     init: bool,
+    stalling: bool,
     cmds: Vec<Command>,
+    rcmds: HashMap<u64, ReceivedCommands>,
+    empty: Vec<Vec<Command>>,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
@@ -30,15 +34,57 @@ enum Action {
     Command(Command),
 }
 
+struct ReceivedCommands {
+    ready: bool,
+    received: u8,
+    commands: Vec<Vec<Command>>,
+}
+
 impl GameState {
+    const DELAY_TICKS: u64 = 3;
+
+    pub fn simulate_recv_cmds(&mut self) {
+        // TODO: this is temporary until we can get the networking implemented,
+        // this will simulate a delay of 3 ticks, which at 16 tps will be
+        // (1000 ms / 16) * 3 = 187.5 ms
+
+        let rcmds = self
+            .rcmds
+            .entry(self.tick + GameState::DELAY_TICKS)
+            .or_insert_with(|| ReceivedCommands {
+                ready: false,
+                received: 0,
+                commands: vec![Vec::new(); self.players as usize],
+            });
+
+        for i in 0..self.players {
+            let cmds = &mut rcmds.commands[i as usize];
+
+            if i == self.pid {
+                for cmd in self.cmds.drain(..) {
+                    cmds.push(cmd);
+                }
+            } else {
+                cmds.push(Command::Nop);
+            }
+
+            rcmds.received += 1;
+            rcmds.ready = rcmds.received == self.players;
+        }
+    }
+
     pub fn new() -> Self {
         GameState {
-            world: World::new(),
             actions: BTreeSet::new(),
+            world: World::new(),
+            tick: 0,
             pid: 0,
             players: 0,
             init: false,
+            stalling: false,
             cmds: Vec::new(),
+            rcmds: HashMap::new(),
+            empty: Vec::new(),
         }
     }
 
@@ -56,9 +102,13 @@ impl GameState {
     pub fn exit(&mut self) {
         self.world.exit();
         self.actions.clear();
+        self.cmds.clear();
+        self.rcmds.clear();
         self.pid = 0;
         self.players = 0;
+        self.tick = 0;
         self.init = false;
+        self.stalling = false;
     }
 
     pub fn input(&mut self, rh: &RaylibHandle) {
@@ -81,6 +131,10 @@ impl GameState {
         if rh.is_key_down(KeyboardKey::KEY_DOWN) {
             self.actions.insert(Action::Command(Command::Decelerate));
         }
+
+        if rh.is_key_down(KeyboardKey::KEY_SPACE) {
+            self.actions.insert(Action::Command(Command::Shoot));
+        }
     }
 
     pub fn update(&mut self, bus: &mut Bus) {
@@ -90,22 +144,33 @@ impl GameState {
             return;
         }
 
-        // let cmds = vec![vec![Command::Nop]];
-        let mut cmds = Vec::new();
-        for i in 0..self.players {
-            if i == self.pid {
-                cmds.push(self.cmds.clone());
-            } else {
-                cmds.push(vec![Command::Nop]);
+        self.simulate_recv_cmds();
+
+        let cmds = match self.rcmds.get_mut(&self.tick) {
+            // once we have received all commands and ready is set,
+            // we can proceed with the world
+            Some(cmds) if cmds.ready => &mut cmds.commands,
+            // we will not have received any data for the first couple of ticks,
+            // this is intentional
+            None if self.tick < GameState::DELAY_TICKS => &mut self.empty,
+            // if we have not yet received all commands for this tick,
+            // then we are stalling
+            _ => {
+                self.stalling = true;
+                return;
             }
-        }
+        };
 
         self.world.update(&cmds);
+        self.tick += 1;
 
         self.cmds.clear();
     }
 
-    pub fn message(&mut self, _sender: &Sender, _msg: &Message) {}
+    pub fn message(&mut self, _sender: &Sender, _msg: &Message) {
+        // TODO: once we get all commands for the current tick,
+        // set stalling to false
+    }
 
     pub fn draw(&mut self, rrh: &mut RaylibRenderHandle, delta: f32) {
         if !self.init {
@@ -113,51 +178,75 @@ impl GameState {
         }
 
         self.world.draw(rrh, delta);
+
+        // TODO: debug
+        if true {
+            let text = format!("{} pid", self.pid);
+            rrh.draw_text(
+                &text,
+                Engine::WIDTH - raylib::text::measure_text(&text, 10) - 4,
+                4,
+                10,
+                Color::WHITE,
+            );
+
+            let text = format!("{} tik", self.tick);
+            rrh.draw_text(
+                &text,
+                Engine::WIDTH - raylib::text::measure_text(&text, 10) - 4,
+                14,
+                10,
+                Color::WHITE,
+            );
+        }
     }
 
     fn action(&mut self, bus: &mut Bus) {
         while let Some(action) = self.actions.pop_first() {
             match action {
                 Action::Initialize { pid, players, seed } => {
-                    // TODO: this should be configurable
-                    let width = 400;
-                    let height = 400;
+                    // TODO: map should be configurable
+                    let width = Flint::from_num(400);
+                    let height = Flint::from_num(400);
                     let map = Map {
                         // four spawn points for this map
                         spawns: vec![
                             // top left
                             Spawn {
                                 point: FlintVec2::new(Flint::from_num(100), Flint::from_num(100)),
-                                rotation: rotations::left(),
+                                rotation: FlintVec2::rotation_left(),
                             },
                             // top right
                             Spawn {
                                 point: FlintVec2::new(
-                                    Flint::from_num(width - 100),
+                                    width - Flint::from_num(100),
                                     Flint::from_num(100),
                                 ),
-                                rotation: rotations::down(),
+                                rotation: FlintVec2::rotation_down(),
                             },
                             // bottom left
                             Spawn {
                                 point: FlintVec2::new(
                                     Flint::from_num(100),
-                                    Flint::from_num(height - 100),
+                                    height - Flint::from_num(100),
                                 ),
-                                rotation: rotations::right(),
+                                rotation: FlintVec2::rotation_right(),
                             },
                             // bottom right
                             Spawn {
                                 point: FlintVec2::new(
-                                    Flint::from_num(width - 100),
-                                    Flint::from_num(height - 100),
+                                    width - Flint::from_num(100),
+                                    height - Flint::from_num(100),
                                 ),
-                                rotation: rotations::up(),
+                                rotation: FlintVec2::rotation_up(),
                             },
                         ],
                         width,
                         height,
-                        entities: Entities::new(),
+                        width_i32: width.to_num(),
+                        height_i32: height.to_num(),
+                        width_f32: width.to_num(),
+                        height_f32: height.to_num(),
                     };
 
                     self.world.init(pid as usize, players as usize, seed, map);

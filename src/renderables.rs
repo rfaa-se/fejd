@@ -1,6 +1,9 @@
-use raylib::prelude::{Color, RaylibDraw, RaylibMode2D, Vector2};
+use raylib::prelude::{Color, Rectangle, Vector2};
 
-use crate::{components::Body, math::FlintTriangle, misc::RaylibRenderHandle};
+use crate::{
+    components::Body,
+    math::{FlintRectangle, FlintTriangle},
+};
 
 pub struct Renderable<T> {
     pub color: Color,
@@ -19,6 +22,41 @@ pub struct RenderTriangle {
     pub v1: Vector2,
     pub v2: Vector2,
     pub v3: Vector2,
+}
+
+#[derive(Clone, Copy)]
+pub struct RenderRectangle {
+    pub point: Vector2,
+    pub width: f32,
+    pub height: f32,
+}
+
+impl From<FlintRectangle> for RenderRectangle {
+    fn from(value: FlintRectangle) -> Self {
+        Self {
+            point: Vector2 {
+                x: value.point.x.to_num(),
+                y: value.point.y.to_num(),
+            },
+            width: value.width.to_num(),
+            height: value.height.to_num(),
+        }
+    }
+}
+
+impl From<Body<FlintRectangle>> for RenderBody<RenderRectangle> {
+    fn from(value: Body<FlintRectangle>) -> Self {
+        // transform the rotation vector into radians
+        let rotation = value
+            .rotation
+            .y
+            .to_num::<f32>()
+            .atan2(value.rotation.x.to_num());
+
+        let shape: RenderRectangle = value.shape.into();
+
+        Self { shape, rotation }
+    }
 }
 
 impl From<FlintTriangle> for RenderTriangle {
@@ -56,6 +94,12 @@ impl From<Body<FlintTriangle>> for RenderBody<RenderTriangle> {
     }
 }
 
+impl<T> Renderable<T> {
+    pub fn lerp_rotation(&self, amount: f32) -> f32 {
+        raylib::math::lerp(self.past.rotation, self.live.rotation, amount)
+    }
+}
+
 impl Renderable<RenderTriangle> {
     pub fn new(color: Color, shape: &RenderTriangle, rotation: f32) -> Self {
         let mut shape = shape.clone();
@@ -86,34 +130,6 @@ impl Renderable<RenderTriangle> {
             .get_centroid()
             .lerp(self.live.shape.get_centroid(), amount)
     }
-
-    pub fn draw(&self, rrh: &mut RaylibMode2D<RaylibRenderHandle>, delta: f32) {
-        rrh.draw_triangle_lines(
-            self.lerp_v1(delta),
-            self.lerp_v2(delta),
-            self.lerp_v3(delta),
-            self.color,
-        );
-
-        rrh.draw_circle_v(self.lerp_v1(delta), 1.0, Color::RED);
-        rrh.draw_circle_v(self.lerp_v2(delta), 1.0, Color::BLUE);
-        rrh.draw_circle_v(self.lerp_v3(delta), 1.0, Color::YELLOW);
-
-        let cen = self.lerp_centroid(delta);
-        let (x, y) = (cen.x.round() as i32, cen.y.round() as i32);
-
-        rrh.draw_text(
-            &format!(
-                "{} {}",
-                self.live.rotation.to_degrees().round() + 180.0,
-                self.live.rotation
-            ),
-            x,
-            y - 32,
-            10,
-            Color::WHITESMOKE,
-        );
-    }
 }
 
 impl RenderTriangle {
@@ -139,5 +155,28 @@ impl RenderTriangle {
         rot(&mut self.v1);
         rot(&mut self.v2);
         rot(&mut self.v3);
+    }
+}
+
+impl Renderable<RenderRectangle> {
+    pub fn new(color: Color, shape: &RenderRectangle, rotation: f32) -> Self {
+        let shape = shape.clone();
+
+        Renderable {
+            color,
+            live: RenderBody { shape, rotation },
+            past: RenderBody { shape, rotation },
+        }
+    }
+
+    pub fn lerp(&self, amount: f32) -> Rectangle {
+        let point = self.past.shape.point.lerp(self.live.shape.point, amount);
+
+        Rectangle {
+            x: point.x,
+            y: point.y,
+            width: raylib::math::lerp(self.past.shape.width, self.live.shape.width, amount),
+            height: raylib::math::lerp(self.past.shape.height, self.live.shape.height, amount),
+        }
     }
 }

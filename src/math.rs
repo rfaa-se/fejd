@@ -1,4 +1,4 @@
-use std::ops::{AddAssign, Mul};
+use std::ops::{Add, AddAssign, Mul};
 
 use fixed::types::I20F12;
 
@@ -11,6 +11,12 @@ pub struct FlintVec2 {
 }
 
 #[derive(Clone, Copy, Debug)]
+pub struct FlintLine {
+    pub v1: FlintVec2,
+    pub v2: FlintVec2,
+}
+
+#[derive(Clone, Copy, Debug)]
 pub struct FlintTriangle {
     pub v1: FlintVec2,
     pub v2: FlintVec2,
@@ -19,34 +25,19 @@ pub struct FlintTriangle {
     pub height: Flint,
 }
 
-pub mod rotations {
-    use super::{Flint, FlintVec2};
+#[derive(Clone, Copy, Debug)]
+pub struct FlintRectangle {
+    pub point: FlintVec2,
+    pub width: Flint,
+    pub height: Flint,
+}
 
-    pub fn up() -> FlintVec2 {
-        FlintVec2 {
-            x: Flint::ZERO,
-            y: Flint::NEG_ONE,
-        }
-    }
-
-    pub fn right() -> FlintVec2 {
-        FlintVec2 {
-            x: Flint::ONE,
-            y: Flint::ZERO,
-        }
-    }
-
-    pub fn down() -> FlintVec2 {
-        FlintVec2 {
-            x: Flint::ZERO,
-            y: Flint::ONE,
-        }
-    }
-
-    pub fn left() -> FlintVec2 {
-        FlintVec2 {
-            x: Flint::NEG_ONE,
-            y: Flint::ZERO,
+impl FlintRectangle {
+    pub fn from_centroid(cen: &FlintVec2, width: Flint, height: Flint) -> Self {
+        Self {
+            point: FlintVec2::new(cen.x - width / 2, cen.y - height / 2),
+            width,
+            height,
         }
     }
 }
@@ -59,6 +50,44 @@ impl FlintVec2 {
     pub fn _radians(&self) -> Flint {
         cordic::atan2(self.y, self.x)
     }
+
+    pub const fn rotation_up() -> FlintVec2 {
+        FlintVec2 {
+            x: Flint::ZERO,
+            y: Flint::NEG_ONE,
+        }
+    }
+
+    pub const fn rotation_right() -> FlintVec2 {
+        FlintVec2 {
+            x: Flint::ONE,
+            y: Flint::ZERO,
+        }
+    }
+
+    pub const fn rotation_down() -> FlintVec2 {
+        FlintVec2 {
+            x: Flint::ZERO,
+            y: Flint::ONE,
+        }
+    }
+
+    pub const fn rotation_left() -> FlintVec2 {
+        FlintVec2 {
+            x: Flint::NEG_ONE,
+            y: Flint::ZERO,
+        }
+    }
+
+    pub fn rotate(&self, rad: &Flint, point: &FlintVec2) -> FlintVec2 {
+        let cos = cordic::cos(*rad);
+        let sin = cordic::sin(*rad);
+
+        FlintVec2 {
+            x: (cos * (self.x - point.x)) - (sin * (self.y - point.y)) + point.x,
+            y: (sin * (self.x - point.x)) + (cos * (self.y - point.y)) + point.y,
+        }
+    }
 }
 
 impl FlintTriangle {
@@ -66,33 +95,36 @@ impl FlintTriangle {
         //          up 90
         // left 0            right 180
         //         down 270
-
+        //
         // v1
-        //     v2
+        // |\
+        // | \ v2
+        // | /
+        // |/
         // v3
 
-        let v1 = FlintVec2::new(
+        let left = FlintVec2::new(
             Flint::from_num(cen.x - (width / 2)),
             Flint::from_num(cen.y - (height / 3)),
         );
 
-        let v2 = FlintVec2::new(Flint::from_num(cen.x + width / 2), Flint::from_num(cen.y));
+        let top = FlintVec2::new(Flint::from_num(cen.x + width / 2), Flint::from_num(cen.y));
 
-        let v3 = FlintVec2::new(
+        let right = FlintVec2::new(
             Flint::from_num(cen.x - (width / 2)),
             Flint::from_num(cen.y + (height / 3)),
         );
 
         FlintTriangle {
-            v1,
-            v2,
-            v3,
+            v1: left,
+            v2: top,
+            v3: right,
             width,
             height,
         }
     }
 
-    pub fn _get_centroid(&self) -> FlintVec2 {
+    pub fn get_centroid(&self) -> FlintVec2 {
         FlintVec2 {
             x: ((self.v1.x + self.v2.x + self.v3.x) / 3),
             y: ((self.v1.y + self.v2.y + self.v3.y) / 3),
@@ -115,5 +147,16 @@ impl AddAssign for FlintVec2 {
     fn add_assign(&mut self, rhs: Self) {
         self.x += rhs.x;
         self.y += rhs.y;
+    }
+}
+
+impl Add for FlintVec2 {
+    type Output = FlintVec2;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        FlintVec2 {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+        }
     }
 }

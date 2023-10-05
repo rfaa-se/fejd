@@ -6,9 +6,11 @@ use crate::{
     components::{Body, Motion},
     engine::Engine,
     entities::{Entities, Player},
+    logic::LogicSystem,
     math::{Flint, FlintTriangle, FlintVec2},
     misc::RaylibRenderHandle,
-    renderables::Renderable,
+    render::RenderSystem,
+    renderables::{RenderTriangle, Renderable},
 };
 
 pub struct Spawn {
@@ -18,9 +20,12 @@ pub struct Spawn {
 
 pub struct Map {
     pub spawns: Vec<Spawn>,
-    pub width: i32,
-    pub height: i32,
-    pub entities: Entities,
+    pub width: Flint,
+    pub height: Flint,
+    pub width_i32: i32,
+    pub height_i32: i32,
+    pub width_f32: f32,
+    pub height_f32: f32,
 }
 
 pub struct World {
@@ -29,6 +34,10 @@ pub struct World {
     pid: Option<usize>,
     map: Option<Map>,
     camera: Camera2D,
+    tick: u64,
+    logic: LogicSystem,
+    render: RenderSystem,
+    entities: Entities,
 }
 
 impl World {
@@ -44,10 +53,14 @@ impl World {
                 rotation: 0.0,
                 zoom: 1.0,
             },
+            tick: 0,
+            logic: LogicSystem::new(),
+            render: RenderSystem::new(),
+            entities: Entities::new(),
         }
     }
 
-    pub fn init(&mut self, pid: usize, players: usize, seed: u64, mut map: Map) {
+    pub fn init(&mut self, pid: usize, players: usize, seed: u64, map: Map) {
         // players must not be greater than the spawn points in the map
         // TODO: might be fixable without manual checks with const generics somehow, skip for now
         self.rng.seed(seed);
@@ -59,6 +72,8 @@ impl World {
         for pid in positions.iter().take(players) {
             let spawn = &map.spawns[*pid];
 
+            // TODO: move to something like spawner? entity factory?
+
             let body = Body {
                 shape: FlintTriangle::from_centroid(
                     &spawn.point,
@@ -68,7 +83,7 @@ impl World {
                 rotation: spawn.rotation,
             };
 
-            let render = Renderable::new(
+            let render = Renderable::<RenderTriangle>::new(
                 Color::GREEN,
                 &body.shape.into(),
                 spawn
@@ -81,14 +96,15 @@ impl World {
             let motion = Motion {
                 speed: Flint::from_num(0),
                 max_speed: Flint::from_num(12),
-                acceleration: Flint::from_num(0.4),
-                rotation_speed: Flint::from_num(0.12),
+                acceleration: Flint::from_num(0.6),
+                rotation_speed: Flint::from_num(0.18),
             };
 
-            map.entities.players.push(Player {
+            self.entities.players.push(Player {
                 body,
                 motion,
                 render,
+                dead: false,
             });
         }
 
@@ -101,6 +117,8 @@ impl World {
         self.pid = None;
         self.seed = None;
         self.map = None;
+        self.tick = 0;
+        self.entities.clear();
     }
 
     pub fn update(&mut self, cmds: &[Vec<Command>]) {
@@ -109,38 +127,22 @@ impl World {
         //     None => return,
         // };
 
-        let mut map = match self.map.as_mut() {
+        let map = match self.map.as_mut() {
             Some(map) => map,
             None => return,
         };
 
-        // TODO: move all below logic to systems
-
-        // update renderable past bodies,
-        // this is so we can interpolate between past and live bodies
-        for player in map.entities.players.iter_mut() {
-            player.render.past = player.render.live;
-        }
+        // update all logic systems
+        self.logic.update(map, &mut self.entities);
 
         // execute all player commands
         for (pid, cmds) in cmds.iter().enumerate() {
             for cmd in cmds.iter() {
-                cmd.exec(pid, &mut map);
+                cmd.exec(pid, &mut self.entities);
             }
         }
 
-        // update motion
-        for player in map.entities.players.iter_mut() {
-            let velocity = player.body.rotation * player.motion.speed;
-            player.body.shape.v1 += velocity;
-            player.body.shape.v2 += velocity;
-            player.body.shape.v3 += velocity;
-        }
-
-        // update renderable live bodies
-        for player in map.entities.players.iter_mut() {
-            player.render.live = player.body.into();
-        }
+        self.tick += 1;
     }
 
     pub fn draw(&mut self, rrh: &mut RaylibRenderHandle, delta: f32) {
@@ -150,37 +152,18 @@ impl World {
         };
 
         // make camera follow player
-        let player = &map.entities.players[*pid];
+        let player = &self.entities.players[*pid];
         let target = player.render.lerp_centroid(delta);
 
         self.camera.target.x = target.x - Engine::WIDTH as f32 / 2.0;
         self.camera.target.y = target.y - Engine::HEIGHT as f32 / 2.0;
 
-        {
-            let mut rrh = rrh.begin_mode2D(self.camera);
-
-            // TODO: cull entities not currently shown on screen
-            // TODO: move all below to render systems
-
-            // draw world outlines
-            rrh.draw_rectangle_lines(0, 0, map.width, map.height, Color::GREEN);
-
-            // draw the players
-            for (_, player) in map.entities.players.iter().enumerate() {
-                player.render.draw(&mut rrh, delta);
-            }
-        }
-
-        // TODO: debug
-        if true {
-            let text = format!("pid {}", pid);
-            rrh.draw_text(
-                &format!("pid {}", pid),
-                Engine::WIDTH - raylib::text::measure_text(&text, 10) - 4,
-                4,
-                10,
-                Color::WHITE,
-            );
-        }
+        // draw all render systems
+        self.render.draw(
+            &mut rrh.begin_mode2D(self.camera),
+            map,
+            &self.entities,
+            delta,
+        );
     }
 }
