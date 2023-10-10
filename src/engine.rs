@@ -1,8 +1,8 @@
 use raylib::prelude::*;
 
+use crate::logs::LogManager;
 use crate::{
     bus::Bus,
-    logs::LogManager,
     messages::{EngineRequestMessage, Message, RequestMessage, Sender, StateRequestMessage},
     states::{State, StateManager},
 };
@@ -24,12 +24,12 @@ pub struct Managers {
 }
 
 impl Engine {
-    pub const WIDTH: i32 = 1280;
-    pub const HEIGHT: i32 = 720;
+    // pub const WIDTH: i32 = 1280;
+    // pub const HEIGHT: i32 = 720;
     // pub const WIDTH: i32 = 960;
     // pub const HEIGHT: i32 = 540;
-    // pub const WIDTH: i32 = 640;
-    // pub const HEIGHT: i32 = 360;
+    pub const WIDTH: i32 = 640;
+    pub const HEIGHT: i32 = 360;
 
     pub fn new() -> Self {
         Engine {

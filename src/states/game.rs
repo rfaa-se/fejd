@@ -57,6 +57,9 @@ impl GameState {
                 commands: vec![Vec::new(); self.players as usize],
             });
 
+        let mut rotated_left = false;
+        let mut rotated_right = false;
+
         for i in 0..self.players {
             let cmds = &mut rcmds.commands[i as usize];
 
@@ -64,6 +67,12 @@ impl GameState {
                 for cmd in self.cmds.drain(..) {
                     cmds.push(cmd);
                 }
+            } else if !rotated_left {
+                rotated_left = true;
+                cmds.push(Command::RotateLeft);
+            } else if !rotated_right {
+                rotated_right = true;
+                cmds.push(Command::RotateRight);
             } else {
                 cmds.push(Command::Nop);
             }
@@ -187,16 +196,16 @@ impl GameState {
                 Engine::WIDTH - raylib::text::measure_text(&text, 10) - 4,
                 4,
                 10,
-                Color::WHITE,
+                Color::WHITESMOKE,
             );
 
-            let text = format!("{} tik", self.tick);
+            let text = format!("{} ticks", self.tick);
             rrh.draw_text(
                 &text,
                 Engine::WIDTH - raylib::text::measure_text(&text, 10) - 4,
                 14,
                 10,
-                Color::WHITE,
+                Color::WHITESMOKE,
             );
         }
     }
@@ -214,7 +223,7 @@ impl GameState {
                             // top left
                             Spawn {
                                 point: FlintVec2::new(Flint::from_num(100), Flint::from_num(100)),
-                                rotation: FlintVec2::rotation_left(),
+                                rotation: FlintVec2::rotation_west(),
                             },
                             // top right
                             Spawn {
@@ -222,7 +231,7 @@ impl GameState {
                                     width - Flint::from_num(100),
                                     Flint::from_num(100),
                                 ),
-                                rotation: FlintVec2::rotation_down(),
+                                rotation: FlintVec2::rotation_south(),
                             },
                             // bottom left
                             Spawn {
@@ -230,7 +239,7 @@ impl GameState {
                                     Flint::from_num(100),
                                     height - Flint::from_num(100),
                                 ),
-                                rotation: FlintVec2::rotation_right(),
+                                rotation: FlintVec2::rotation_east(),
                             },
                             // bottom right
                             Spawn {
@@ -238,7 +247,7 @@ impl GameState {
                                     width - Flint::from_num(100),
                                     height - Flint::from_num(100),
                                 ),
-                                rotation: FlintVec2::rotation_up(),
+                                rotation: FlintVec2::rotation_north(),
                             },
                         ],
                         width,

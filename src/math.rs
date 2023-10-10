@@ -51,42 +51,57 @@ impl FlintVec2 {
         cordic::atan2(self.y, self.x)
     }
 
-    pub const fn rotation_up() -> FlintVec2 {
+    pub const fn rotation_north() -> FlintVec2 {
         FlintVec2 {
             x: Flint::ZERO,
             y: Flint::NEG_ONE,
         }
     }
 
-    pub const fn rotation_right() -> FlintVec2 {
+    pub const fn rotation_east() -> FlintVec2 {
         FlintVec2 {
             x: Flint::ONE,
             y: Flint::ZERO,
         }
     }
 
-    pub const fn rotation_down() -> FlintVec2 {
+    pub const fn rotation_south() -> FlintVec2 {
         FlintVec2 {
             x: Flint::ZERO,
             y: Flint::ONE,
         }
     }
 
-    pub const fn rotation_left() -> FlintVec2 {
+    pub const fn rotation_west() -> FlintVec2 {
         FlintVec2 {
             x: Flint::NEG_ONE,
             y: Flint::ZERO,
         }
     }
 
-    pub fn rotate(&self, rad: &Flint, point: &FlintVec2) -> FlintVec2 {
+    pub fn rotate(&self, rad: &Flint, around: &FlintVec2) -> FlintVec2 {
         let cos = cordic::cos(*rad);
         let sin = cordic::sin(*rad);
+        let x = self.x - around.x;
+        let y = self.y - around.y;
 
         FlintVec2 {
-            x: (cos * (self.x - point.x)) - (sin * (self.y - point.y)) + point.x,
-            y: (sin * (self.x - point.x)) + (cos * (self.y - point.y)) + point.y,
+            x: (cos * x) - (sin * y) + around.x,
+            y: (sin * x) + (cos * y) + around.y,
         }
+    }
+
+    pub fn _normalize(&self) -> FlintVec2 {
+        let mag = self._magnitude();
+
+        FlintVec2 {
+            x: self.x / mag,
+            y: self.y / mag,
+        }
+    }
+
+    pub fn _magnitude(&self) -> Flint {
+        cordic::sqrt(self.x * self.x + self.y * self.y)
     }
 }
 

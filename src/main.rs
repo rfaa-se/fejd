@@ -9,14 +9,13 @@ mod commands;
 mod components;
 mod engine;
 mod entities;
-mod logic;
 mod logs;
 mod math;
 mod messages;
 mod misc;
-mod render;
-mod renderables;
+mod spawner;
 mod states;
+mod systems;
 mod world;
 
 fn main() {

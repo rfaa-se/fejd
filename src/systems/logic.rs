@@ -1,5 +1,5 @@
 use crate::{
-    components::{Body, Motion},
+    components::logic::{Body, Motion},
     entities::Entities,
     math::{Flint, FlintRectangle, FlintTriangle},
     world::Map,
@@ -17,15 +17,16 @@ impl LogicSystem {
     }
 
     pub fn update(&self, map: &Map, entities: &mut Entities) {
-        // update past bodies, this is so we can interpolate between past and live bodies
-        self.update_renderables_past(map, entities);
+        // update render past bodies, this is so we can interpolate between past and live bodies
+        self.update_render_past(map, entities);
 
+        // update game logic
         self.update_dead(entities);
         self.update_motion(map, entities);
         self.update_out_of_bounds(map, entities);
 
-        // update live bodies, this is so we can interpolate between past and live bodies
-        self.update_renderables_live(map, entities);
+        // update render live bodies, this is so we can interpolate between past and live bodies
+        self.update_render_live(map, entities);
     }
 
     fn update_motion(&self, _map: &Map, entities: &mut Entities) {
@@ -47,7 +48,7 @@ impl LogicSystem {
         }
     }
 
-    fn update_renderables_past(&self, _map: &Map, entities: &mut Entities) {
+    fn update_render_past(&self, _map: &Map, entities: &mut Entities) {
         // players
         entities
             .players
@@ -61,7 +62,7 @@ impl LogicSystem {
             .for_each(|x| x.render.past = x.render.live);
     }
 
-    fn update_renderables_live(&self, _map: &Map, entities: &mut Entities) {
+    fn update_render_live(&self, _map: &Map, entities: &mut Entities) {
         // players
         entities
             .players
@@ -76,10 +77,11 @@ impl LogicSystem {
     }
 
     fn update_out_of_bounds(&self, map: &Map, entities: &mut Entities) {
-        entities
-            .projectiles
-            .iter_mut()
-            .for_each(|x| x.dead = is_out_of_bounds_rectangle(&x.body, map));
+        entities.projectiles.iter_mut().for_each(|x| {
+            if is_out_of_bounds_rectangle(&x.body, map) {
+                x.dead = true;
+            }
+        });
     }
 
     fn update_dead(&self, entities: &mut Entities) {
@@ -129,7 +131,7 @@ fn apply_velocity_rectangle(body: &mut Body<FlintRectangle>, motion: &Motion) {
 fn is_out_of_bounds_rectangle(body: &Body<FlintRectangle>, map: &Map) -> bool {
     // TODO: rotations
 
-    if body.shape.point.x + body.shape.width < 0 {
+    if body.shape.point.x + body.shape.width < Flint::ZERO {
         return true;
     }
 
@@ -137,7 +139,7 @@ fn is_out_of_bounds_rectangle(body: &Body<FlintRectangle>, map: &Map) -> bool {
         return true;
     }
 
-    if body.shape.point.y + body.shape.height < 0 {
+    if body.shape.point.y + body.shape.height < Flint::ZERO {
         return true;
     }
 

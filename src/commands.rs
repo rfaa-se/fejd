@@ -1,11 +1,4 @@
-use raylib::prelude::Color;
-
-use crate::{
-    components::{Body, Motion},
-    entities::{Entities, Projectile},
-    math::{Flint, FlintRectangle},
-    renderables::{RenderRectangle, Renderable},
-};
+use crate::{entities::Entities, math::Flint, misc, spawner::Spawner};
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum Command {
@@ -18,7 +11,7 @@ pub enum Command {
 }
 
 impl Command {
-    pub fn exec(&self, pid: usize, entities: &mut Entities) {
+    pub fn exec(&self, pid: usize, entities: &mut Entities, spawner: &Spawner) {
         let p = match entities.players.get_mut(pid) {
             Some(p) => p,
             None => return,
@@ -55,50 +48,50 @@ impl Command {
                 }
             }
             Command::Shoot => {
-                // TODO: move to something like spawner? entity factory?
-                let body = Body {
-                    shape: FlintRectangle::from_centroid(
-                        &p.body.shape.v2.rotate(
-                            &cordic::atan2(p.body.rotation.y, p.body.rotation.x),
-                            &p.body.shape.get_centroid(),
-                        ),
-                        Flint::from_num(2),
-                        Flint::from_num(2),
-                    ),
-                    rotation: p.body.rotation,
-                };
+                // let's put the projectile a little bit in front of the ship,
+                // first we need to get the rotated tip of the ship
+                let radians = cordic::atan2(p.body.rotation.y, p.body.rotation.x);
+                let mut centroid = p
+                    .body
+                    .shape
+                    .v2
+                    .rotate(&radians, &p.body.shape.get_centroid());
 
-                // let's try to make it look like the projectile actually spawns
-                // in front of the player
-                // TODO: there's still something fucky here
-                let mut rec: RenderRectangle = body.shape.into();
-                rec.point = p.render.live.shape.v2;
+                // then we apply the calculated distance to the centroid
+                let distance = Flint::from_num(6);
 
-                let render = Renderable::<RenderRectangle>::new(
-                    Color::GREEN,
-                    &rec,
-                    body.rotation
-                        .y
-                        .to_num::<f32>()
-                        .atan2(body.rotation.x.to_num()),
+                centroid.x += distance * p.body.rotation.x;
+                centroid.y += distance * p.body.rotation.y;
+
+                // to make the initial rendering look correct we also need to adjust
+                // where we put the render centroid, for this we also need
+                // to rotate it
+                let render_distance = distance.to_num::<f32>();
+                // let mut render_centroid = p.render.live.shape.v2;
+                // render_centroid.x += render_distance * p.render.live.rotation.cos();
+                // render_centroid.y += render_distance * p.render.live.rotation.sin();
+                // let mut render_centroid = misc::rotate_vector2(
+                //     &p.render.live.shape.v2,
+                //     &p.render.live.rotation,
+                //     &p.render.live.shape.get_centroid(),
+                // );
+                let mut render_centroid = p.render.live.shape.v2;
+                let (sin, cos) = p.render.live.rotation.sin_cos();
+                render_centroid.x += render_distance * cos;
+                render_centroid.y += render_distance * sin;
+
+                // render_centroid.x += render_distance * p.render.live.rotation.cos();
+                // render_centroid.y += render_distance * p.render.live.rotation.sin();
+
+                let projectile = spawner.spawn_projectile(
+                    &centroid,
+                    &p.body.rotation,
+                    &render_centroid,
+                    p.render.live.rotation,
+                    &p.motion.speed,
                 );
 
-                let speed = Flint::from_num(14);
-
-                let motion = Motion {
-                    // projectile will travel at base speed relative to player speed
-                    speed: speed + p.motion.speed,
-                    max_speed: Flint::MAX,
-                    acceleration: speed,
-                    rotation_speed: Flint::ZERO,
-                };
-
-                entities.projectiles.push(Projectile {
-                    body,
-                    motion,
-                    render,
-                    dead: false,
-                });
+                entities.projectiles.push(projectile);
             }
         }
     }

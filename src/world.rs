@@ -3,14 +3,12 @@ use raylib::prelude::*;
 
 use crate::{
     commands::Command,
-    components::{Body, Motion},
     engine::Engine,
-    entities::{Entities, Player},
-    logic::LogicSystem,
-    math::{Flint, FlintTriangle, FlintVec2},
+    entities::Entities,
+    math::{Flint, FlintVec2},
     misc::RaylibRenderHandle,
-    render::RenderSystem,
-    renderables::{RenderTriangle, Renderable},
+    spawner::Spawner,
+    systems::{LogicSystem, RenderSystem},
 };
 
 pub struct Spawn {
@@ -38,6 +36,7 @@ pub struct World {
     logic: LogicSystem,
     render: RenderSystem,
     entities: Entities,
+    spawner: Spawner,
 }
 
 impl World {
@@ -57,6 +56,7 @@ impl World {
             logic: LogicSystem::new(),
             render: RenderSystem::new(),
             entities: Entities::new(),
+            spawner: Spawner::new(),
         }
     }
 
@@ -71,41 +71,8 @@ impl World {
 
         for pid in positions.iter().take(players) {
             let spawn = &map.spawns[*pid];
-
-            // TODO: move to something like spawner? entity factory?
-
-            let body = Body {
-                shape: FlintTriangle::from_centroid(
-                    &spawn.point,
-                    Flint::from_num(27),
-                    Flint::from_num(31),
-                ),
-                rotation: spawn.rotation,
-            };
-
-            let render = Renderable::<RenderTriangle>::new(
-                Color::GREEN,
-                &body.shape.into(),
-                spawn
-                    .rotation
-                    .y
-                    .to_num::<f32>()
-                    .atan2(spawn.rotation.x.to_num()),
-            );
-
-            let motion = Motion {
-                speed: Flint::from_num(0),
-                max_speed: Flint::from_num(12),
-                acceleration: Flint::from_num(0.6),
-                rotation_speed: Flint::from_num(0.18),
-            };
-
-            self.entities.players.push(Player {
-                body,
-                motion,
-                render,
-                dead: false,
-            });
+            let player = self.spawner.spawn_triship(&spawn.point, &spawn.rotation);
+            self.entities.players.push(player);
         }
 
         self.pid = Some(pid);
@@ -138,7 +105,7 @@ impl World {
         // execute all player commands
         for (pid, cmds) in cmds.iter().enumerate() {
             for cmd in cmds.iter() {
-                cmd.exec(pid, &mut self.entities);
+                cmd.exec(pid, &mut self.entities, &self.spawner);
             }
         }
 
@@ -164,6 +131,16 @@ impl World {
             map,
             &self.entities,
             delta,
+        );
+
+        // draw some debug data
+        let text = format!("{} ents", self.entities.get_count());
+        rrh.draw_text(
+            &text,
+            Engine::WIDTH - raylib::text::measure_text(&text, 10) - 4,
+            24,
+            10,
+            Color::WHITESMOKE,
         );
     }
 }

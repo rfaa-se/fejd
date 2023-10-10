@@ -1,15 +1,15 @@
 use crate::{
-    components::{Body, Motion},
+    components::logic::{Body, Motion},
+    components::render::{RenderRectangle, RenderTriangle, Renderable},
     math::{FlintRectangle, FlintTriangle},
-    renderables::{RenderRectangle, RenderTriangle, Renderable},
 };
 
 pub struct Entities {
-    pub players: Vec<Player>,
+    pub players: Vec<Triship>,
     pub projectiles: Vec<Projectile>,
 }
 
-pub struct Player {
+pub struct Triship {
     pub body: Body<FlintTriangle>,
     pub motion: Motion,
     pub render: Renderable<RenderTriangle>,
@@ -34,5 +34,9 @@ impl Entities {
     pub fn clear(&mut self) {
         self.players.clear();
         self.projectiles.clear();
+    }
+
+    pub fn get_count(&self) -> usize {
+        self.players.len() + self.projectiles.len()
     }
 }
