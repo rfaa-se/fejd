@@ -3,9 +3,12 @@ use raylib::prelude::*;
 
 use crate::{
     commands::Command,
-    components::Body,
-    entities::{Entities, Player},
-    math::{Flint, FlintTriangle, FlintVec2},
+    engine::Engine,
+    entities::Entities,
+    math::{Flint, FlintVec2},
+    misc::RaylibRenderHandle,
+    spawner::Spawner,
+    systems::{LogicSystem, RenderSystem},
 };
 
 pub struct Spawn {
@@ -15,9 +18,12 @@ pub struct Spawn {
 
 pub struct Map {
     pub spawns: Vec<Spawn>,
-    pub width: i32,
-    pub height: i32,
-    pub entities: Entities,
+    pub width: Flint,
+    pub height: Flint,
+    pub width_i32: i32,
+    pub height_i32: i32,
+    pub width_f32: f32,
+    pub height_f32: f32,
 }
 
 pub struct World {
@@ -26,6 +32,11 @@ pub struct World {
     pid: Option<usize>,
     map: Option<Map>,
     camera: Camera2D,
+    tick: u64,
+    logic: LogicSystem,
+    render: RenderSystem,
+    entities: Entities,
+    spawner: Spawner,
 }
 
 impl World {
@@ -41,10 +52,15 @@ impl World {
                 rotation: 0.0,
                 zoom: 1.0,
             },
+            tick: 0,
+            logic: LogicSystem::new(),
+            render: RenderSystem::new(),
+            entities: Entities::new(),
+            spawner: Spawner::new(),
         }
     }
 
-    pub fn init(&mut self, pid: usize, players: usize, seed: u64, mut map: Map) {
+    pub fn init(&mut self, pid: usize, players: usize, seed: u64, map: Map) {
         // players must not be greater than the spawn points in the map
         // TODO: might be fixable without manual checks with const generics somehow, skip for now
         self.rng.seed(seed);
@@ -55,16 +71,8 @@ impl World {
 
         for pid in positions.iter().take(players) {
             let spawn = &map.spawns[*pid];
-
-            map.entities.players.push(Player {
-                color: Color::GREEN,
-                position: Body::new(FlintTriangle::from_center(
-                    spawn.point,
-                    Flint::from_num(27),
-                    Flint::from_num(31),
-                    spawn.rotation,
-                )),
-            });
+            let player = self.spawner.spawn_triship(&spawn.point, &spawn.rotation);
+            self.entities.players.push(player);
         }
 
         self.pid = Some(pid);
@@ -76,59 +84,63 @@ impl World {
         self.pid = None;
         self.seed = None;
         self.map = None;
+        self.tick = 0;
+        self.entities.clear();
     }
 
-    pub fn update(&mut self, _cmds: &[Vec<Command>]) {
-        let _pid = match self.pid {
-            Some(pid) => pid,
+    pub fn update(&mut self, cmds: &[Vec<Command>]) {
+        // let _pid = match self.pid {
+        //     Some(pid) => pid,
+        //     None => return,
+        // };
+
+        let map = match self.map.as_mut() {
+            Some(map) => map,
             None => return,
         };
+
+        // update all logic systems
+        self.logic.update(map, &mut self.entities);
+
+        // execute all player commands
+        for (pid, cmds) in cmds.iter().enumerate() {
+            for cmd in cmds.iter() {
+                cmd.exec(pid, &mut self.entities, &self.spawner);
+            }
+        }
+
+        self.tick += 1;
     }
 
-    pub fn draw(&mut self, rdh: &mut RaylibDrawHandle, delta: f32) {
+    pub fn draw(&mut self, rrh: &mut RaylibRenderHandle, delta: f32) {
         let (map, pid) = match (&self.map, &self.pid) {
             (Some(map), Some(pid)) => (map, pid),
             _ => return,
         };
 
         // make camera follow player
-        let player = &map.entities.players[*pid];
-        let pos = player.position.lerp_center(delta);
+        let player = &self.entities.players[*pid];
+        let target = player.render.lerp_centroid(delta);
 
-        self.camera.target.x = pos.x - (rdh.get_screen_width() / 2) as f32;
-        self.camera.target.y = pos.y - (rdh.get_screen_height() / 2) as f32;
+        self.camera.target.x = target.x - Engine::WIDTH as f32 / 2.0;
+        self.camera.target.y = target.y - Engine::HEIGHT as f32 / 2.0;
 
-        {
-            // draw world
-            let mut rdh = rdh.begin_mode2D(self.camera);
+        // draw all render systems
+        self.render.draw(
+            &mut rrh.begin_mode2D(self.camera),
+            map,
+            &self.entities,
+            delta,
+        );
 
-            rdh.draw_rectangle_lines(0, 0, map.width, map.height, Color::GREEN);
-
-            for (i, player) in map.entities.players.iter().enumerate() {
-                rdh.draw_triangle_lines(
-                    player.position.lerp_v1(delta),
-                    player.position.lerp_v2(delta),
-                    player.position.lerp_v3(delta),
-                    player.color,
-                );
-
-                let point = map.spawns[i].point;
-                rdh.draw_pixel(point.x.to_num(), point.y.to_num(), Color::YELLOW);
-            }
-
-            rdh.draw_pixel(pos.x as i32, pos.y as i32, Color::RED);
-        }
-
-        // TODO: debug
-        if true {
-            let text = format!("pid {}", pid);
-            rdh.draw_text(
-                &format!("pid {}", pid),
-                rdh.get_screen_width() - raylib::text::measure_text(&text, 10) - 4,
-                4,
-                10,
-                Color::WHITE,
-            );
-        }
+        // draw some debug data
+        let text = format!("{} ents", self.entities.get_count());
+        rrh.draw_text(
+            &text,
+            Engine::WIDTH - raylib::text::measure_text(&text, 10) - 4,
+            24,
+            10,
+            Color::WHITESMOKE,
+        );
     }
 }

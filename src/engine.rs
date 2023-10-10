@@ -1,11 +1,8 @@
-use raylib::{
-    prelude::{Color, RaylibDraw, RaylibDrawHandle},
-    RaylibHandle, RaylibThread,
-};
+use raylib::prelude::*;
 
+use crate::logs::LogManager;
 use crate::{
     bus::Bus,
-    logs::LogManager,
     messages::{EngineRequestMessage, Message, RequestMessage, Sender, StateRequestMessage},
     states::{State, StateManager},
 };
@@ -27,6 +24,13 @@ pub struct Managers {
 }
 
 impl Engine {
+    // pub const WIDTH: i32 = 1280;
+    // pub const HEIGHT: i32 = 720;
+    // pub const WIDTH: i32 = 960;
+    // pub const HEIGHT: i32 = 540;
+    pub const WIDTH: i32 = 640;
+    pub const HEIGHT: i32 = 360;
+
     pub fn new() -> Self {
         Engine {
             managers: Managers {
@@ -39,12 +43,21 @@ impl Engine {
         }
     }
 
-    pub fn run(&mut self, rh: &mut RaylibHandle, rt: &RaylibThread) {
+    pub fn run(&mut self, mut rh: &mut RaylibHandle, rt: &RaylibThread) {
+        // use a render texture instead of drawing directly to screen,
+        // this is to support different resolutions
+        // TODO: make sure the aspect ratio is the same as the screen resolution,
+        // otherwise we should draw black borders,
+        // game aspect ratio is 16:9
+        let mut rrt = match rh.load_render_texture(rt, Self::WIDTH as u32, Self::HEIGHT as u32) {
+            Ok(rrt) => rrt,
+            Err(e) => {
+                panic!("Could not create render texture: {}", e);
+            }
+        };
+
         // initialize everything before we start
         self.init();
-
-        // TODO: use a render texture instead of drawing directly to screen
-        //        let mut render_texture = rh.load_render_texture(rt, 1280, 768).unwrap();
 
         let mut accumulator = 0.0;
 
@@ -64,13 +77,11 @@ impl Engine {
                 self.update();
             }
 
-            let mut rdh = rh.begin_drawing(rt);
-
             // delta is used to smooth interpolation
             let delta = accumulator / self.managers.engine.size;
 
             // draw as often as possible
-            self.draw(&mut rdh, delta);
+            self.draw(rt, &mut rh, &mut rrt, delta);
         }
     }
 
@@ -109,24 +120,66 @@ impl Engine {
         self.bus.update(&mut self.managers);
     }
 
-    fn draw(&mut self, rdh: &mut RaylibDrawHandle, delta: f32) {
-        rdh.clear_background(Color::BLACK);
+    fn draw(
+        &mut self,
+        rt: &RaylibThread,
+        mut rh: &mut RaylibHandle,
+        rrt: &mut RenderTexture2D,
+        delta: f32,
+    ) {
+        {
+            // draw everything on the render texture
+            let mut rrh = rh.begin_texture_mode(rt, rrt);
+            rrh.clear_background(Color::BLACK);
 
-        self.managers.state.draw(rdh, delta);
+            self.managers.state.draw(&mut rrh, delta);
 
-        if self.managers.engine.debug {
-            // TODO: calc current tps
-            let strings = [
-                &format!("tps {} {} {}", 16, self.managers.engine.tps, self.ticks),
-                &format!("fps {}", rdh.get_fps()),
-                &format!("dbg {}", self.managers.engine.debug),
-            ];
+            if self.managers.engine.debug {
+                // TODO: calc current tps
+                let strings = [
+                    &format!("tps {} {} {}", 16, self.managers.engine.tps, self.ticks),
+                    &format!("fps {}", rrh.get_fps()),
+                    &format!("dbg {}", self.managers.engine.debug),
+                ];
 
-            let mut y = 4;
-            for string in strings {
-                rdh.draw_text(string, 4, y, 10, Color::WHITESMOKE);
-                y += 10;
+                let mut y = 4;
+                for string in strings {
+                    rrh.draw_text(string, 4, y, 10, Color::WHITESMOKE);
+                    y += 10;
+                }
             }
         }
+
+        // scale and draw the render texture
+        let mut rdh = rh.begin_drawing(rt);
+
+        rdh.clear_background(Color::WHITE);
+        // rdh.draw_texture_n_patch(&rrt, NPatchInfo {
+        //     source: todo!(),
+        //     left: todo!(),
+        //     top: todo!(),
+        //     right: todo!(),
+        //     bottom: todo!(),
+        //     layout: NPatchLayout::NPATCH_NINE_PATCH,
+        // }, , , , )
+        // render texture must be y-flipped due to default OpenGL coordinates (left-bottom)
+        rdh.draw_texture_pro(
+            &rrt,
+            Rectangle {
+                x: 0.0,
+                y: 0.0,
+                width: rrt.texture.width as f32,
+                height: -rrt.texture.height as f32,
+            },
+            Rectangle {
+                x: 0.0,
+                y: 0.0,
+                width: rdh.get_screen_width() as f32,
+                height: rdh.get_screen_height() as f32,
+            },
+            Vector2 { x: 0.0, y: 0.0 },
+            0.0,
+            Color::WHITE,
+        );
     }
 }
