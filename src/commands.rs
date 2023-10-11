@@ -1,4 +1,4 @@
-use crate::{entities::Entities, math::Flint, misc, spawner::Spawner};
+use crate::{entities::Entities, math::Flint, spawner::Spawner};
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum Command {
@@ -58,37 +58,25 @@ impl Command {
                     .rotate(&radians, &p.body.shape.get_centroid());
 
                 // then we apply the calculated distance to the centroid
-                let distance = Flint::from_num(6);
+                let distance = Flint::from_num(2);
 
                 centroid.x += distance * p.body.rotation.x;
                 centroid.y += distance * p.body.rotation.y;
 
                 // to make the initial rendering look correct we also need to adjust
-                // where we put the render centroid, for this we also need
-                // to rotate it
+                // where we put the render centroid
                 let render_distance = distance.to_num::<f32>();
-                // let mut render_centroid = p.render.live.shape.v2;
-                // render_centroid.x += render_distance * p.render.live.rotation.cos();
-                // render_centroid.y += render_distance * p.render.live.rotation.sin();
-                // let mut render_centroid = misc::rotate_vector2(
-                //     &p.render.live.shape.v2,
-                //     &p.render.live.rotation,
-                //     &p.render.live.shape.get_centroid(),
-                // );
                 let mut render_centroid = p.render.live.shape.v2;
                 let (sin, cos) = p.render.live.rotation.sin_cos();
-                render_centroid.x += render_distance * cos;
-                render_centroid.y += render_distance * sin;
-
-                // render_centroid.x += render_distance * p.render.live.rotation.cos();
-                // render_centroid.y += render_distance * p.render.live.rotation.sin();
+                // TODO: look into why this seems to work, why 0.4?
+                render_centroid.x += render_distance * (cos - 0.4);
+                render_centroid.y += render_distance * (sin - 0.4);
 
                 let projectile = spawner.spawn_projectile(
                     &centroid,
-                    &p.body.rotation,
-                    &render_centroid,
-                    p.render.live.rotation,
-                    &p.motion.speed,
+                    p.body.rotation.clone(),
+                    render_centroid,
+                    p.motion.speed,
                 );
 
                 entities.projectiles.push(projectile);

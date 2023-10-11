@@ -1,7 +1,7 @@
 use raylib::prelude::{Color, Rectangle, Vector2};
 
 use crate::components::logic::Body;
-use crate::math::{FlintRectangle, FlintTriangle};
+use crate::math::{FlintRectangle, FlintTriangle, FlintVec2};
 
 pub struct Renderable<T> {
     pub color: Color,
@@ -29,15 +29,37 @@ pub struct RenderRectangle {
     pub height: f32,
 }
 
+impl From<FlintVec2> for Vector2 {
+    fn from(value: FlintVec2) -> Self {
+        Self {
+            x: value.x.to_num(),
+            y: value.y.to_num(),
+        }
+    }
+}
+
+impl From<Body<FlintVec2>> for RenderBody<Vector2> {
+    fn from(value: Body<FlintVec2>) -> Self {
+        Self {
+            shape: value.shape.into(),
+            rotation: value
+                .rotation
+                .y
+                .to_num::<f32>()
+                .atan2(value.rotation.x.to_num()),
+        }
+    }
+}
+
 impl From<FlintRectangle> for RenderRectangle {
     fn from(value: FlintRectangle) -> Self {
         Self {
             point: Vector2 {
-                x: value.point.x.to_num(),
-                y: value.point.y.to_num(),
+                x: value.point.x.to_num::<f32>(),
+                y: value.point.y.to_num::<f32>(),
             },
-            width: value.width.to_num(),
-            height: value.height.to_num(),
+            width: value.width.to_num::<f32>(),
+            height: value.height.to_num::<f32>(),
         }
     }
 }
@@ -61,16 +83,16 @@ impl From<FlintTriangle> for RenderTriangle {
     fn from(value: FlintTriangle) -> Self {
         Self {
             v1: Vector2 {
-                x: value.v1.x.to_num(),
-                y: value.v1.y.to_num(),
+                x: value.v1.x.to_num::<f32>(),
+                y: value.v1.y.to_num::<f32>(),
             },
             v2: Vector2 {
-                x: value.v2.x.to_num(),
-                y: value.v2.y.to_num(),
+                x: value.v2.x.to_num::<f32>(),
+                y: value.v2.y.to_num::<f32>(),
             },
             v3: Vector2 {
-                x: value.v3.x.to_num(),
-                y: value.v3.y.to_num(),
+                x: value.v3.x.to_num::<f32>(),
+                y: value.v3.y.to_num::<f32>(),
             },
         }
     }
@@ -99,8 +121,7 @@ impl<T> Renderable<T> {
 }
 
 impl Renderable<RenderTriangle> {
-    pub fn new(color: Color, shape: &RenderTriangle, rotation: f32) -> Self {
-        let mut shape = shape.clone();
+    pub fn new(color: Color, mut shape: RenderTriangle, rotation: f32) -> Self {
         shape.rotate(rotation);
 
         Renderable {
@@ -156,9 +177,7 @@ impl RenderTriangle {
 }
 
 impl Renderable<RenderRectangle> {
-    pub fn new(color: Color, shape: &RenderRectangle, rotation: f32) -> Self {
-        let shape = shape.clone();
-
+    pub fn new(color: Color, shape: RenderRectangle, rotation: f32) -> Self {
         Renderable {
             color,
             live: RenderBody { shape, rotation },
@@ -167,6 +186,9 @@ impl Renderable<RenderRectangle> {
     }
 
     pub fn lerp(&self, amount: f32) -> Rectangle {
+        // we return a raylib rectangle from this instead of a render rectangle,
+        // this is so we can easily just use the raylib draw methods without further
+        // conversions
         let point = self.past.shape.point.lerp(self.live.shape.point, amount);
 
         Rectangle {

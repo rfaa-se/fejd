@@ -99,15 +99,15 @@ impl World {
             None => return,
         };
 
-        // update all logic systems
-        self.logic.update(map, &mut self.entities);
-
         // execute all player commands
         for (pid, cmds) in cmds.iter().enumerate() {
             for cmd in cmds.iter() {
                 cmd.exec(pid, &mut self.entities, &self.spawner);
             }
         }
+
+        // update all logic systems
+        self.logic.update(map, &mut self.entities);
 
         self.tick += 1;
     }

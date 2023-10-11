@@ -1,4 +1,4 @@
-use std::ops::{Add, AddAssign, Mul};
+use std::ops::{Add, AddAssign, Mul, MulAssign};
 
 use fixed::types::I20F12;
 
@@ -155,6 +155,13 @@ impl Mul<Flint> for FlintVec2 {
             x: self.x * rhs,
             y: self.y * rhs,
         }
+    }
+}
+
+impl MulAssign for FlintVec2 {
+    fn mul_assign(&mut self, rhs: Self) {
+        self.x *= rhs.x;
+        self.y *= rhs.y;
     }
 }
 

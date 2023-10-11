@@ -1,7 +1,7 @@
 use crate::{
     components::logic::{Body, Motion},
     entities::Entities,
-    math::{Flint, FlintRectangle, FlintTriangle},
+    math::{Flint, FlintRectangle, FlintTriangle, FlintVec2},
     world::Map,
 };
 
@@ -17,34 +17,45 @@ impl LogicSystem {
     }
 
     pub fn update(&self, map: &Map, entities: &mut Entities) {
-        // update render past bodies, this is so we can interpolate between past and live bodies
+        // update render past bodies,
+        // this is so we can interpolate between past and live bodies when drawing
         self.update_render_past(map, entities);
 
         // update game logic
         self.update_dead(entities);
         self.update_motion(map, entities);
+        self.update_lifetime(entities);
         self.update_out_of_bounds(map, entities);
 
-        // update render live bodies, this is so we can interpolate between past and live bodies
+        // update render live bodies,
+        // this is so we can interpolate between past and live bodies when drawing
         self.update_render_live(map, entities);
     }
 
     fn update_motion(&self, _map: &Map, entities: &mut Entities) {
         // players
         for entity in entities.players.iter_mut() {
-            // apply deceleration
-            apply_deceleration(&mut entity.motion, &self.deceleration);
-
             // apply velocity
             apply_velocity_triangle(&mut entity.body, &entity.motion);
+
+            // apply deceleration
+            apply_deceleration(&mut entity.motion, &self.deceleration);
         }
 
         // projectiles
         for entity in entities.projectiles.iter_mut() {
-            // no deceleration on projectiles
-
             // apply velocity
             apply_velocity_rectangle(&mut entity.body, &entity.motion);
+
+            // no deceleration on projectiles
+        }
+
+        // particles
+        for entity in entities.particles.iter_mut() {
+            // apply velocity
+            apply_velocity_vector2(&mut entity.body, &entity.motion);
+
+            // no deceleration on particles
         }
     }
 
@@ -60,6 +71,12 @@ impl LogicSystem {
             .projectiles
             .iter_mut()
             .for_each(|x| x.render.past = x.render.live);
+
+        // particles
+        entities
+            .particles
+            .iter_mut()
+            .for_each(|x| x.render.past = x.render.live);
     }
 
     fn update_render_live(&self, _map: &Map, entities: &mut Entities) {
@@ -72,6 +89,12 @@ impl LogicSystem {
         // projectiles
         entities
             .projectiles
+            .iter_mut()
+            .for_each(|x| x.render.live = x.body.into());
+
+        // particles
+        entities
+            .particles
             .iter_mut()
             .for_each(|x| x.render.live = x.body.into());
     }
@@ -90,6 +113,20 @@ impl LogicSystem {
 
         // projectiles
         entities.projectiles.retain(|x| !x.dead);
+
+        // particles
+        entities.particles.retain(|x| !x.dead);
+    }
+
+    fn update_lifetime(&self, entities: &mut Entities) {
+        // particles
+        entities.particles.iter_mut().for_each(|x| {
+            x.lifetime -= 1;
+
+            if x.lifetime < 1 {
+                x.dead = true;
+            }
+        });
     }
 }
 
@@ -116,8 +153,6 @@ fn apply_velocity_triangle(body: &mut Body<FlintTriangle>, motion: &Motion) {
     body.shape.v1 += velocity;
     body.shape.v2 += velocity;
     body.shape.v3 += velocity;
-
-    // TODO: check if out of bounds
 }
 
 fn apply_velocity_rectangle(body: &mut Body<FlintRectangle>, motion: &Motion) {
@@ -126,6 +161,12 @@ fn apply_velocity_rectangle(body: &mut Body<FlintRectangle>, motion: &Motion) {
     let velocity = body.rotation * motion.speed;
 
     body.shape.point = body.shape.point + velocity;
+}
+
+fn apply_velocity_vector2(body: &mut Body<FlintVec2>, motion: &Motion) {
+    let velocity = body.rotation * motion.speed;
+
+    body.shape *= velocity;
 }
 
 fn is_out_of_bounds_rectangle(body: &Body<FlintRectangle>, map: &Map) -> bool {
