@@ -125,19 +125,19 @@ impl GameState {
             self.actions.insert(Action::GotoMenu);
         }
 
-        if rh.is_key_down(KeyboardKey::KEY_LEFT) {
+        if rh.is_key_down(KeyboardKey::KEY_LEFT) || rh.is_key_down(KeyboardKey::KEY_H) {
             self.actions.insert(Action::Command(Command::RotateLeft));
         }
 
-        if rh.is_key_down(KeyboardKey::KEY_RIGHT) {
+        if rh.is_key_down(KeyboardKey::KEY_RIGHT) || rh.is_key_down(KeyboardKey::KEY_L) {
             self.actions.insert(Action::Command(Command::RotateRight));
         }
 
-        if rh.is_key_down(KeyboardKey::KEY_UP) {
+        if rh.is_key_down(KeyboardKey::KEY_UP) || rh.is_key_down(KeyboardKey::KEY_K) {
             self.actions.insert(Action::Command(Command::Accelerate));
         }
 
-        if rh.is_key_down(KeyboardKey::KEY_DOWN) {
+        if rh.is_key_down(KeyboardKey::KEY_DOWN) || rh.is_key_down(KeyboardKey::KEY_J) {
             self.actions.insert(Action::Command(Command::Decelerate));
         }
 
