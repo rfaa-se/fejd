@@ -1,4 +1,9 @@
-use crate::{entities::Entities, math::Flint, spawner::Spawner};
+use crate::{
+    components::render::RenderVector2,
+    entities::Entities,
+    math::{Flint, FlintVec2},
+    spawner::Spawner,
+};
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum Command {
@@ -39,6 +44,52 @@ impl Command {
                 if p.motion.speed > p.motion.max_speed {
                     p.motion.speed = p.motion.max_speed;
                 }
+
+                // spawn thrust particles
+                let centroid = FlintVec2 {
+                    x: (p.body.shape.v1.x + p.body.shape.v3.x) / 2,
+                    y: (p.body.shape.v1.y + p.body.shape.v3.y) / 2,
+                };
+                let centroid =
+                    centroid.rotate(&p.body.rotation.radians(), &p.body.shape.get_centroid());
+
+                let rotation = p.body.rotation.rotate_180();
+
+                // to make the initial rendering look correct we also need to adjust
+                // where we put the render centroid
+                let mut render_centroid = RenderVector2 {
+                    x: (((p.render.past.shape.v1.x + p.render.live.shape.v1.x) / 2.0)
+                        + ((p.render.past.shape.v3.x + p.render.live.shape.v3.x) / 2.0))
+                        / 2.0,
+                    y: (((p.render.past.shape.v1.y + p.render.live.shape.v1.y) / 2.0)
+                        + ((p.render.past.shape.v3.y + p.render.live.shape.v3.y) / 2.0))
+                        / 2.0,
+                };
+
+                // in case ship is accelerating from a negative speed,
+                // we need to adjust the relative speed to not make the particles appear inside the ship
+                let relative_speed = if p.motion.speed < Flint::ZERO {
+                    let s = p.motion.speed * -1 + p.motion.acceleration;
+                    let ss = s.to_num::<f32>();
+                    render_centroid.x += ss * rotation.x.to_num::<f32>();
+                    render_centroid.y += ss * rotation.y.to_num::<f32>();
+                    s
+                } else {
+                    Flint::from_num(0.4)
+                };
+
+                let speed = Flint::from_num(0.12);
+
+                let particle = spawner.spawn_particle(
+                    &centroid,
+                    render_centroid,
+                    rotation,
+                    speed,
+                    relative_speed,
+                    10,
+                );
+
+                entities.particles.push(particle);
             }
             Command::Decelerate => {
                 p.motion.speed -= p.motion.acceleration / 2;
@@ -68,7 +119,7 @@ impl Command {
                 let render_distance = distance.to_num::<f32>();
                 let mut render_centroid = p.render.live.shape.v2;
                 let (sin, cos) = p.render.live.rotation.sin_cos();
-                // TODO: look into why this seems to work, why 0.4?
+                // TODO: look into why this seems to work, why 0.4? wat
                 render_centroid.x += render_distance * (cos - 0.4);
                 render_centroid.y += render_distance * (sin - 0.4);
 
@@ -77,6 +128,7 @@ impl Command {
                     p.body.rotation.clone(),
                     render_centroid,
                     p.motion.speed,
+                    pid,
                 );
 
                 entities.projectiles.push(projectile);

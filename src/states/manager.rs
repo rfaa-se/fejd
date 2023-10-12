@@ -99,7 +99,7 @@ impl StateManager {
                 Engine::WIDTH / 2 - self.debug_text_w / 2,
                 4,
                 10,
-                Color::WHITESMOKE,
+                Engine::DEBUG_TEXT_COLOR,
             );
         }
     }

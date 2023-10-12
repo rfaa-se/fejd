@@ -24,12 +24,14 @@ pub struct Managers {
 }
 
 impl Engine {
-    pub const WIDTH: i32 = 1280;
-    pub const HEIGHT: i32 = 720;
+    pub const DEBUG_TEXT_COLOR: Color = Color::WHITESMOKE;
+
+    // pub const WIDTH: i32 = 1280;
+    // pub const HEIGHT: i32 = 720;
     // pub const WIDTH: i32 = 960;
     // pub const HEIGHT: i32 = 540;
-    // pub const WIDTH: i32 = 640;
-    // pub const HEIGHT: i32 = 360;
+    pub const WIDTH: i32 = 640;
+    pub const HEIGHT: i32 = 360;
 
     pub fn new() -> Self {
         Engine {
@@ -144,9 +146,11 @@ impl Engine {
 
                 let mut y = 4;
                 for string in strings {
-                    rrh.draw_text(string, 4, y, 10, Color::WHITESMOKE);
+                    rrh.draw_text(string, 4, y, 10, Engine::DEBUG_TEXT_COLOR);
                     y += 10;
                 }
+
+                self.managers.log.draw(&mut rrh, delta);
             }
         }
 
@@ -154,14 +158,7 @@ impl Engine {
         let mut rdh = rh.begin_drawing(rt);
 
         rdh.clear_background(Color::WHITE);
-        // rdh.draw_texture_n_patch(&rrt, NPatchInfo {
-        //     source: todo!(),
-        //     left: todo!(),
-        //     top: todo!(),
-        //     right: todo!(),
-        //     bottom: todo!(),
-        //     layout: NPatchLayout::NPATCH_NINE_PATCH,
-        // }, , , , )
+
         // render texture must be y-flipped due to default OpenGL coordinates (left-bottom)
         rdh.draw_texture_pro(
             &rrt,

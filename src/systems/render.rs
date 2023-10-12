@@ -1,8 +1,9 @@
-use raylib::prelude::{Color, RaylibDraw, RaylibMode2D, Rectangle, Vector2};
+use raylib::prelude::{RaylibDraw, RaylibMode2D};
 
 use crate::{
-    components::render::RenderTriangle,
-    entities::{Entities, Projectile, Triship},
+    components::render::{RenderColor, RenderRectangle, RenderTriangle, RenderVector2},
+    engine::Engine,
+    entities::{Entities, Particle, Projectile, Triship},
     misc::RaylibRenderHandle,
     world::Map,
 };
@@ -25,6 +26,7 @@ impl RenderSystem {
 
         self.draw_triships(rrh, map, &entities.players, delta);
         self.draw_projectiles(rrh, map, &entities.projectiles, delta);
+        self.draw_particles(rrh, map, &entities.particles, delta);
 
         // TODO: debug
         if true {
@@ -35,7 +37,25 @@ impl RenderSystem {
 
     fn draw_world(&self, rrh: &mut RaylibMode2D<RaylibRenderHandle>, map: &Map, _delta: f32) {
         // draw world outlines
-        rrh.draw_rectangle_lines(0, 0, map.width_i32, map.height_i32, Color::GREEN);
+        rrh.draw_rectangle_lines(0, 0, map.width_i32, map.height_i32, RenderColor::GREEN);
+    }
+
+    fn draw_particles(
+        &self,
+        rrh: &mut RaylibMode2D<RaylibRenderHandle>,
+        map: &Map,
+        particles: &[Particle],
+        delta: f32,
+    ) {
+        for (_, particle) in particles.iter().enumerate() {
+            let par = particle.render.lerp(delta);
+
+            if !is_visible_vector2(&par, map) {
+                continue;
+            }
+
+            rrh.draw_pixel(par.x as i32, par.y as i32, particle.render.color);
+        }
     }
 
     fn draw_triships(
@@ -93,17 +113,23 @@ impl RenderSystem {
                 x - len,
                 y - len,
                 10,
-                Color::WHITESMOKE,
+                Engine::DEBUG_TEXT_COLOR,
             );
 
-            rrh.draw_text(&format!("{}, {}", x, y), x + len, y, 10, Color::WHITESMOKE);
+            rrh.draw_text(
+                &format!("{}, {}", x, y),
+                x + len,
+                y,
+                10,
+                Engine::DEBUG_TEXT_COLOR,
+            );
 
             rrh.draw_text(
                 &format!("{} {}", triship.motion.speed, triship.motion.acceleration),
                 x - len,
                 y + len,
                 10,
-                Color::WHITESMOKE,
+                Engine::DEBUG_TEXT_COLOR,
             );
         }
     }
@@ -125,7 +151,7 @@ impl RenderSystem {
             rec.x += rec.width / 2.0;
             rec.y += rec.height / 2.0;
 
-            let origin = Vector2 {
+            let origin = RenderVector2 {
                 x: rec.width / 2.0,
                 y: rec.height / 2.0,
             };
@@ -156,7 +182,7 @@ impl RenderSystem {
     }
 }
 
-fn is_visible_rectangle(body: &Rectangle, map: &Map) -> bool {
+fn is_visible_rectangle(body: &RenderRectangle, map: &Map) -> bool {
     // TODO: rotations
 
     if body.x + body.width < 0.0 {
@@ -180,5 +206,25 @@ fn is_visible_rectangle(body: &Rectangle, map: &Map) -> bool {
 
 fn is_visible_triangle(_body: &RenderTriangle, _map: &Map) -> bool {
     // TODO
+    true
+}
+
+fn is_visible_vector2(body: &RenderVector2, map: &Map) -> bool {
+    if body.x < 0.0 {
+        return false;
+    }
+
+    if body.x > map.width_f32 {
+        return false;
+    }
+
+    if body.y < 0.0 {
+        return false;
+    }
+
+    if body.y > map.height_f32 {
+        return false;
+    }
+
     true
 }

@@ -1,4 +1,4 @@
-use std::ops::{Add, AddAssign, Mul, MulAssign};
+use std::ops::{Add, AddAssign, Mul, Sub};
 
 use fixed::types::I20F12;
 
@@ -47,7 +47,7 @@ impl FlintVec2 {
         FlintVec2 { x, y }
     }
 
-    pub fn _radians(&self) -> Flint {
+    pub fn radians(&self) -> Flint {
         cordic::atan2(self.y, self.x)
     }
 
@@ -91,8 +91,30 @@ impl FlintVec2 {
         }
     }
 
+    pub fn rotate_180(&self) -> FlintVec2 {
+        FlintVec2 {
+            x: self.x * -1,
+            y: self.y * -1,
+        }
+    }
+
+    pub fn rotate_90(&self) -> FlintVec2 {
+        FlintVec2 {
+            x: self.y,
+            y: self.x * -1,
+        }
+    }
+
+    pub fn rotate_270(&self) -> FlintVec2 {
+        FlintVec2 {
+            x: self.y * -1,
+            y: self.x,
+        }
+    }
+
     pub fn _normalize(&self) -> FlintVec2 {
         let mag = self._magnitude();
+        // TODO: possible div by 0
 
         FlintVec2 {
             x: self.x / mag,
@@ -158,13 +180,6 @@ impl Mul<Flint> for FlintVec2 {
     }
 }
 
-impl MulAssign for FlintVec2 {
-    fn mul_assign(&mut self, rhs: Self) {
-        self.x *= rhs.x;
-        self.y *= rhs.y;
-    }
-}
-
 impl AddAssign for FlintVec2 {
     fn add_assign(&mut self, rhs: Self) {
         self.x += rhs.x;
@@ -179,6 +194,17 @@ impl Add for FlintVec2 {
         FlintVec2 {
             x: self.x + rhs.x,
             y: self.y + rhs.y,
+        }
+    }
+}
+
+impl Sub for FlintVec2 {
+    type Output = FlintVec2;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        FlintVec2 {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
         }
     }
 }

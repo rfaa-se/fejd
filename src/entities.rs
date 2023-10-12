@@ -24,6 +24,7 @@ pub struct Projectile {
     pub motion: Motion,
     pub render: Renderable<RenderRectangle>,
     pub dead: bool,
+    pub pid: usize,
 }
 
 pub struct Particle {
