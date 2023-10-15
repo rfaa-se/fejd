@@ -10,6 +10,7 @@ pub struct Entities {
     pub players: Vec<Triship>,
     pub projectiles: Vec<Projectile>,
     pub particles: Vec<Particle>,
+    pub stars: Vec<Star>,
 }
 
 pub struct Triship {
@@ -35,12 +36,20 @@ pub struct Particle {
     pub dead: bool,
 }
 
+pub struct Star {
+    pub body: Body<FlintRectangle>,
+    pub render: Renderable<RenderRectangle>,
+    pub counter: u8,
+    pub toggle: bool,
+}
+
 impl Entities {
     pub fn new() -> Self {
         Entities {
             players: Vec::new(),
             projectiles: Vec::new(),
             particles: Vec::new(),
+            stars: Vec::new(),
         }
     }
 
@@ -48,9 +57,10 @@ impl Entities {
         self.players.clear();
         self.projectiles.clear();
         self.particles.clear();
+        self.stars.clear();
     }
 
     pub fn get_count(&self) -> usize {
-        self.players.len() + self.projectiles.len() + self.particles.len()
+        self.players.len() + self.projectiles.len() + self.particles.len() + self.stars.len()
     }
 }

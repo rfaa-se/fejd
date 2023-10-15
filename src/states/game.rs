@@ -7,7 +7,9 @@ use crate::{
     commands::Command,
     engine::Engine,
     math::{Flint, FlintVec2},
-    messages::{Message, RequestMessage, Sender, StateRequestMessage},
+    messages::{
+        EngineMessage, EngineRequestMessage, Message, RequestMessage, Sender, StateRequestMessage,
+    },
     misc::RaylibRenderHandle,
     world::{Map, Spawn, World},
 };
@@ -25,6 +27,7 @@ pub struct GameState {
     cmds: Vec<Command>,
     rcmds: HashMap<u64, ReceivedCommands>,
     empty: Vec<Vec<Command>>,
+    debug: bool,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
@@ -32,6 +35,8 @@ enum Action {
     Initialize { pid: u8, players: u8, seed: u64 },
     GotoMenu,
     Command(Command),
+    GetDebug,
+    ToggleDebug,
 }
 
 struct ReceivedCommands {
@@ -94,10 +99,13 @@ impl GameState {
             cmds: Vec::new(),
             rcmds: HashMap::new(),
             empty: Vec::new(),
+            debug: false,
         }
     }
 
     pub fn init(&mut self) {
+        self.actions.insert(Action::GetDebug);
+
         // TODO: we need to get the pid, pids, and seed
         // this should be fetched from somewhere,
         // when networking is implemented
@@ -123,6 +131,9 @@ impl GameState {
     pub fn input(&mut self, rh: &RaylibHandle) {
         if rh.is_key_pressed(KeyboardKey::KEY_E) {
             self.actions.insert(Action::GotoMenu);
+        }
+        if rh.is_key_pressed(KeyboardKey::KEY_D) {
+            self.actions.insert(Action::ToggleDebug);
         }
 
         if rh.is_key_down(KeyboardKey::KEY_LEFT) {
@@ -176,9 +187,16 @@ impl GameState {
         self.cmds.clear();
     }
 
-    pub fn message(&mut self, _sender: &Sender, _msg: &Message) {
+    pub fn message(&mut self, _sender: &Sender, msg: &Message) {
         // TODO: once we get all commands for the current tick,
         // set stalling to false
+
+        match msg {
+            Message::Engine(EngineMessage::DebugGet(debug) | EngineMessage::DebugSet(debug)) => {
+                self.debug = *debug;
+            }
+            _ => return,
+        }
     }
 
     pub fn draw(&mut self, rrh: &mut RaylibRenderHandle, delta: f32) {
@@ -186,10 +204,9 @@ impl GameState {
             return;
         }
 
-        self.world.draw(rrh, delta);
+        self.world.draw(rrh, self.debug, delta);
 
-        // TODO: debug
-        if true {
+        if self.debug {
             let text = format!("{} pid", self.pid);
             rrh.draw_text(
                 &text,
@@ -273,6 +290,16 @@ impl GameState {
                 Action::Command(cmd) => {
                     // TODO: these should be sent via net
                     self.cmds.push(cmd);
+                }
+                Action::GetDebug => {
+                    bus.send(Message::Request(RequestMessage::Engine(
+                        EngineRequestMessage::GetDebug,
+                    )));
+                }
+                Action::ToggleDebug => {
+                    bus.send(Message::Request(RequestMessage::Engine(
+                        EngineRequestMessage::SetDebug(!self.debug),
+                    )));
                 }
             }
         }

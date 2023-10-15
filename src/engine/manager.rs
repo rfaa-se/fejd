@@ -16,6 +16,7 @@ pub struct EngineManager {
 enum Action {
     SetTicksPerSecond(u8),
     SetDebug(bool),
+    GetDebug,
 }
 
 impl EngineManager {
@@ -46,6 +47,9 @@ impl EngineManager {
             EngineRequestMessage::SetDebug(debug) => {
                 self.actions.insert(Action::SetDebug(*debug));
             }
+            EngineRequestMessage::GetDebug => {
+                self.actions.insert(Action::GetDebug);
+            }
         }
     }
 
@@ -62,6 +66,9 @@ impl EngineManager {
                     self.debug = debug;
 
                     bus.send(Message::Engine(EngineMessage::DebugSet(debug)));
+                }
+                Action::GetDebug => {
+                    bus.send(Message::Engine(EngineMessage::DebugGet(self.debug)));
                 }
             }
         }

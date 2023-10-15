@@ -1,7 +1,7 @@
 use raylib::prelude::{RaylibDraw, RaylibMode2D};
 
 use crate::{
-    components::render::{RenderColor, RenderRectangle, RenderTriangle, RenderVector2},
+    components::render::{RenderColor, RenderRectangle, RenderTriangle, RenderVector2, Renderable},
     engine::Engine,
     entities::{Entities, Particle, Projectile, Triship},
     misc::RaylibRenderHandle,
@@ -20,19 +20,30 @@ impl RenderSystem {
         rrh: &mut RaylibMode2D<RaylibRenderHandle>,
         map: &Map,
         entities: &Entities,
+        debug: bool,
         delta: f32,
     ) {
         self.draw_world(rrh, map, delta);
 
+        entities
+            .stars
+            .iter()
+            .for_each(|x| self.draw_rectangle(rrh, map, &x.render, delta));
+
         self.draw_triships(rrh, map, &entities.players, delta);
-        self.draw_projectiles(rrh, map, &entities.projectiles, delta);
+
+        entities
+            .projectiles
+            .iter()
+            .for_each(|x| self.draw_rectangle(rrh, map, &x.render, delta));
+
         self.draw_particles(rrh, map, &entities.particles, delta);
 
-        // TODO: debug
-        if true {
+        if debug {
             self.draw_triships_debug(rrh, map, &entities.players, delta);
             self.draw_projectiles_debug(rrh, map, &entities.projectiles, delta);
-            self.draw_particles_debug(rrh, map, &entities.particles, delta);
+            // let's not draw these for now
+            //self._draw_particles_debug(rrh, map, &entities.particles, delta);
         }
     }
 
@@ -59,14 +70,13 @@ impl RenderSystem {
         }
     }
 
-    fn draw_particles_debug(
+    fn _draw_particles_debug(
         &self,
         rrh: &mut RaylibMode2D<RaylibRenderHandle>,
         _map: &Map,
         particles: &[Particle],
         _delta: f32,
     ) {
-        return;
         for (_, particle) in particles.iter().enumerate() {
             rrh.draw_pixel(
                 particle.body.shape.x.to_num::<i32>(),
@@ -112,6 +122,8 @@ impl RenderSystem {
                 v3: triship.render.lerp_v3(delta),
             };
 
+            // TODO: draw flint triships?
+
             if !is_visible_triangle(&tri, map) {
                 continue;
             }
@@ -152,35 +164,28 @@ impl RenderSystem {
         }
     }
 
-    fn draw_projectiles(
+    fn draw_rectangle(
         &self,
         rrh: &mut RaylibMode2D<RaylibRenderHandle>,
         map: &Map,
-        projectiles: &[Projectile],
+        rectangle: &Renderable<RenderRectangle>,
         delta: f32,
     ) {
-        for (_, projectile) in projectiles.iter().enumerate() {
-            let mut rec = projectile.render.lerp(delta);
+        let mut rec = rectangle.lerp(delta);
 
-            if !is_visible_rectangle(&rec, map) {
-                continue;
-            }
-
-            rec.x += rec.width / 2.0;
-            rec.y += rec.height / 2.0;
-
-            let origin = RenderVector2 {
-                x: rec.width / 2.0,
-                y: rec.height / 2.0,
-            };
-
-            rrh.draw_rectangle_pro(
-                rec,
-                origin,
-                projectile.render.lerp_rotation(delta),
-                projectile.render.color,
-            );
+        if !is_visible_rectangle(&rec, map) {
+            return;
         }
+
+        rec.x += rec.width / 2.0;
+        rec.y += rec.height / 2.0;
+
+        let origin = RenderVector2 {
+            x: rec.width / 2.0,
+            y: rec.height / 2.0,
+        };
+
+        rrh.draw_rectangle_pro(rec, origin, rectangle.lerp_rotation(delta), rectangle.color);
     }
 
     fn draw_projectiles_debug(
@@ -196,6 +201,8 @@ impl RenderSystem {
             if !is_visible_rectangle(&rec, map) {
                 continue;
             }
+
+            // TODO: draw flint projectiles?
         }
     }
 }

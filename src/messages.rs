@@ -27,12 +27,14 @@ pub enum RequestMessage {
 pub enum EngineMessage {
     TicksPerSecondSet(u8),
     DebugSet(bool),
+    DebugGet(bool),
 }
 
 #[derive(Debug)]
 pub enum EngineRequestMessage {
     SetTicksPerSecond(u8),
     SetDebug(bool),
+    GetDebug,
 }
 
 #[derive(Debug)]

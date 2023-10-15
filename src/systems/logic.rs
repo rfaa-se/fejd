@@ -31,6 +31,7 @@ impl LogicSystem {
         self.update_motion(map, entities);
         self.update_lifetime(entities);
         self.update_out_of_bounds(map, entities);
+        self.update_counter_toggle(entities);
 
         // RENDER
         self.update_color_alpha(entities);
@@ -89,6 +90,12 @@ impl LogicSystem {
             .particles
             .iter_mut()
             .for_each(|x| x.render.past = x.render.live);
+
+        // stars
+        entities
+            .stars
+            .iter_mut()
+            .for_each(|x| x.render.past = x.render.live);
     }
 
     fn update_render_live(&self, entities: &mut Entities) {
@@ -107,6 +114,12 @@ impl LogicSystem {
         // particles
         entities
             .particles
+            .iter_mut()
+            .for_each(|x| x.render.live = x.body.into());
+
+        // stars
+        entities
+            .stars
             .iter_mut()
             .for_each(|x| x.render.live = x.body.into());
     }
@@ -136,6 +149,26 @@ impl LogicSystem {
             .particles
             .iter_mut()
             .for_each(|x| apply_lifetime_decrease(&mut x.lifetime, &mut x.dead));
+    }
+
+    fn update_counter_toggle(&self, entities: &mut Entities) {
+        // stars
+        entities
+            .stars
+            .iter_mut()
+            .for_each(|x| apply_counter_toggle(&mut x.counter, &mut x.toggle));
+    }
+}
+
+fn apply_counter_toggle(counter: &mut u8, toggle: &mut bool) {
+    if *counter == u8::MAX || *counter == u8::MIN {
+        *toggle = !*toggle;
+    }
+
+    if *toggle {
+        *counter += 1;
+    } else {
+        *counter -= 1;
     }
 }
 

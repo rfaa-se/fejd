@@ -3,6 +3,7 @@ use raylib::prelude::*;
 
 use crate::{
     commands::Command,
+    components::render::RenderColor,
     engine::Engine,
     entities::Entities,
     math::{Flint, FlintVec2},
@@ -69,10 +70,37 @@ impl World {
         let mut positions: Vec<usize> = (0..players).collect();
         self.rng.shuffle(&mut positions);
 
+        // spawn players
         for pid in positions.iter().take(players) {
             let spawn = &map.spawns[*pid];
             let player = self.spawner.spawn_triship(&spawn.point, &spawn.rotation);
             self.entities.players.push(player);
+        }
+
+        // spawn stars
+        for _ in 0..32 {
+            let centroid = FlintVec2::new(
+                Flint::from_num(self.rng.i32(1..128)),
+                Flint::from_num(self.rng.i32(1..128)),
+            );
+            let rotation = FlintVec2::rotation_north();
+            let color = RenderColor::new(
+                self.rng.u8(0..255),
+                self.rng.u8(0..255),
+                self.rng.u8(0..255),
+                self.rng.u8(0..255),
+            );
+
+            let star = self.spawner.spawn_star(
+                &centroid,
+                rotation,
+                self.rng.u8(u8::MIN..u8::MAX),
+                Flint::from_num(self.rng.u8(1..2)),
+                Flint::from_num(self.rng.u8(1..2)),
+                color,
+            );
+
+            self.entities.stars.push(star);
         }
 
         self.pid = Some(pid);
@@ -112,7 +140,7 @@ impl World {
         self.tick += 1;
     }
 
-    pub fn draw(&mut self, rrh: &mut RaylibRenderHandle, delta: f32) {
+    pub fn draw(&mut self, rrh: &mut RaylibRenderHandle, debug: bool, delta: f32) {
         let (map, pid) = match (&self.map, &self.pid) {
             (Some(map), Some(pid)) => (map, pid),
             _ => return,
@@ -130,17 +158,20 @@ impl World {
             &mut rrh.begin_mode2D(self.camera),
             map,
             &self.entities,
+            debug,
             delta,
         );
 
-        // draw some debug data
-        let text = format!("{} ents", self.entities.get_count());
-        rrh.draw_text(
-            &text,
-            Engine::WIDTH - raylib::text::measure_text(&text, 10) - 4,
-            24,
-            10,
-            Color::WHITESMOKE,
-        );
+        if debug {
+            // draw some debug data
+            let text = format!("{} ents", self.entities.get_count());
+            rrh.draw_text(
+                &text,
+                Engine::WIDTH - raylib::text::measure_text(&text, 10) - 4,
+                24,
+                10,
+                Color::WHITESMOKE,
+            );
+        }
     }
 }

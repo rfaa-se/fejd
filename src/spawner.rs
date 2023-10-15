@@ -3,7 +3,7 @@ use fastrand::Rng;
 use crate::{
     components::logic::{Body, Motion},
     components::render::{RenderColor, RenderRectangle, RenderTriangle, RenderVector2, Renderable},
-    entities::{Particle, Projectile, Triship},
+    entities::{Particle, Projectile, Star, Triship},
     math::{Flint, FlintRectangle, FlintTriangle, FlintVec2},
 };
 
@@ -163,18 +163,43 @@ impl Spawner {
             for j in 0..v[i] {
                 let pos = FlintVec2::new(neg + idx, Flint::ZERO).rotate(&rad90, &zero);
                 let c = *centroid + pos;
-
                 let rc = render_centroid - RenderVector2::new(pos.x.to_num(), pos.y.to_num());
-
                 let s = min_speed + Flint::from_num(rng.i32(0..6));
-
                 let l = rng.i32(2..6) + j;
-
                 let p = self.spawn_particle(&c, rc, rotation, s, relative_speed, l);
+
                 particles.push(p);
             }
         }
 
         particles
+    }
+
+    pub fn spawn_star(
+        &self,
+        centroid: &FlintVec2,
+        rotation: FlintVec2,
+        counter: u8,
+        width: Flint,
+        height: Flint,
+        color: RenderColor,
+    ) -> Star {
+        let body = Body {
+            shape: FlintRectangle::from_centroid(centroid, width, height),
+            rotation,
+        };
+
+        let render = Renderable::<RenderRectangle>::new(
+            color,
+            body.shape.into(),
+            rotation.y.to_num::<f32>().atan2(rotation.x.to_num()),
+        );
+
+        Star {
+            body,
+            render,
+            counter,
+            toggle: false,
+        }
     }
 }
