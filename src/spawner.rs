@@ -1,3 +1,5 @@
+use fastrand::Rng;
+
 use crate::{
     components::logic::{Body, Motion},
     components::render::{RenderColor, RenderRectangle, RenderTriangle, RenderVector2, Renderable},
@@ -125,18 +127,54 @@ impl Spawner {
         }
     }
 
-    // pub fn _spawn_thruster_particles(
-    //     &self,
-    //     centroid: &FlintVec2,
-    //     render_centroid: RenderVector2,
-    //     rotation: FlintVec2,
-    //     speed: Flint,
-    //     relative_speed: Flint,
-    // ) -> Vec<Particle> {
-    //     let mut particles = Vec::new();
+    pub fn spawn_thruster_particles(
+        &self,
+        centroid: &FlintVec2,
+        render_centroid: RenderVector2,
+        rotation: FlintVec2,
+        min_speed: Flint,
+        relative_speed: Flint,
+        rng: &mut Rng,
+    ) -> Vec<Particle> {
+        let mut particles = Vec::new();
+        // 18 particles
 
-    //     // TODO
+        // 0 1 2 3 4
+        // 2 4 6 4 2
 
-    //     particles
-    // }
+        // -2 + 0 = -2
+        // -2 + 1 = -1
+        // -2 + 2 = 0
+        // -2 + 3 = 1
+        // -2 + 4 = 2
+
+        let v = [2, 4, 6, 4, 2];
+
+        let rot90 = rotation.rotate_90();
+        let rad90 = cordic::atan2(rot90.y, rot90.x);
+
+        let zero = FlintVec2::new(Flint::ZERO, Flint::ZERO);
+
+        let neg = -Flint::from_num(v.len() / 2);
+
+        for i in 0..v.len() {
+            let idx = Flint::from_num(i);
+
+            for j in 0..v[i] {
+                let pos = FlintVec2::new(neg + idx, Flint::ZERO).rotate(&rad90, &zero);
+                let c = *centroid + pos;
+
+                let rc = render_centroid - RenderVector2::new(pos.x.to_num(), pos.y.to_num());
+
+                let s = min_speed + Flint::from_num(rng.i32(0..6));
+
+                let l = rng.i32(2..6) + j;
+
+                let p = self.spawn_particle(&c, rc, rotation, s, relative_speed, l);
+                particles.push(p);
+            }
+        }
+
+        particles
+    }
 }

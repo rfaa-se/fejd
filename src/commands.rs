@@ -1,3 +1,5 @@
+use fastrand::Rng;
+
 use crate::{
     components::render::RenderVector2,
     entities::Entities,
@@ -16,7 +18,7 @@ pub enum Command {
 }
 
 impl Command {
-    pub fn exec(&self, pid: usize, entities: &mut Entities, spawner: &Spawner) {
+    pub fn exec(&self, pid: usize, entities: &mut Entities, spawner: &Spawner, rng: &mut Rng) {
         let p = match entities.players.get_mut(pid) {
             Some(p) => p,
             None => return,
@@ -75,21 +77,26 @@ impl Command {
                     render_centroid.y += ss * rotation.y.to_num::<f32>();
                     s
                 } else {
-                    Flint::from_num(0.4)
+                    let s = Flint::from_num(0.4);
+                    let ss = s.to_num::<f32>();
+                    let (sin, cos) = p.render.live.rotation.sin_cos();
+                    render_centroid.x += ss * (cos);
+                    render_centroid.y += ss * (sin);
+                    s
                 };
 
                 let speed = Flint::from_num(0.12);
 
-                let particle = spawner.spawn_particle(
+                let particles = spawner.spawn_thruster_particles(
                     &centroid,
                     render_centroid,
                     rotation,
                     speed,
                     relative_speed,
-                    10,
+                    rng,
                 );
 
-                entities.particles.push(particle);
+                entities.particles.extend(particles);
             }
             Command::Decelerate => {
                 p.motion.speed -= p.motion.acceleration / 2;

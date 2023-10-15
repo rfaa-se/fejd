@@ -32,6 +32,7 @@ impl RenderSystem {
         if true {
             self.draw_triships_debug(rrh, map, &entities.players, delta);
             self.draw_projectiles_debug(rrh, map, &entities.projectiles, delta);
+            self.draw_particles_debug(rrh, map, &entities.particles, delta);
         }
     }
 
@@ -55,6 +56,23 @@ impl RenderSystem {
             }
 
             rrh.draw_pixel(par.x as i32, par.y as i32, particle.render.color);
+        }
+    }
+
+    fn draw_particles_debug(
+        &self,
+        rrh: &mut RaylibMode2D<RaylibRenderHandle>,
+        _map: &Map,
+        particles: &[Particle],
+        _delta: f32,
+    ) {
+        return;
+        for (_, particle) in particles.iter().enumerate() {
+            rrh.draw_pixel(
+                particle.body.shape.x.to_num::<i32>(),
+                particle.body.shape.y.to_num::<i32>(),
+                Engine::DEBUG_TEXT_COLOR,
+            );
         }
     }
 

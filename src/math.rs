@@ -180,6 +180,17 @@ impl Mul<Flint> for FlintVec2 {
     }
 }
 
+impl Mul<FlintVec2> for FlintVec2 {
+    type Output = FlintVec2;
+
+    fn mul(self, rhs: FlintVec2) -> Self::Output {
+        FlintVec2 {
+            x: self.x * rhs.x,
+            y: self.y * rhs.y,
+        }
+    }
+}
+
 impl AddAssign for FlintVec2 {
     fn add_assign(&mut self, rhs: Self) {
         self.x += rhs.x;
