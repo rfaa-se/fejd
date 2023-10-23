@@ -26,12 +26,12 @@ pub struct Managers {
 impl Engine {
     pub const DEBUG_TEXT_COLOR: Color = Color::WHITESMOKE;
 
-    // pub const WIDTH: i32 = 1280;
-    // pub const HEIGHT: i32 = 720;
+    pub const WIDTH: i32 = 1280;
+    pub const HEIGHT: i32 = 720;
     // pub const WIDTH: i32 = 960;
     // pub const HEIGHT: i32 = 540;
-    pub const WIDTH: i32 = 640;
-    pub const HEIGHT: i32 = 360;
+    // pub const WIDTH: i32 = 640;
+    // pub const HEIGHT: i32 = 360;
 
     pub fn new() -> Self {
         Engine {
@@ -136,7 +136,8 @@ impl Engine {
 
             self.managers.state.draw(&mut rrh, delta);
 
-            if self.managers.engine.debug {
+            // if self.managers.engine.debug {
+            if true {
                 // TODO: calc current tps
                 let strings = [
                     &format!("tps {} {} {}", 16, self.managers.engine.tps, self.ticks),
@@ -150,7 +151,9 @@ impl Engine {
                     y += 10;
                 }
 
-                self.managers.log.draw(&mut rrh, delta);
+                if self.managers.engine.debug {
+                    self.managers.log.draw(&mut rrh, delta);
+                }
             }
         }
 

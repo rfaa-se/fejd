@@ -3,7 +3,7 @@ use raylib::prelude::Vector2;
 use crate::{
     components::logic::{Body, Motion},
     components::render::{RenderRectangle, RenderTriangle, Renderable},
-    math::{FlintRectangle, FlintTriangle, FlintVec2},
+    math::{Flint, FlintRectangle, FlintTriangle, FlintVec2},
 };
 
 pub struct Entities {
@@ -18,6 +18,7 @@ pub struct Triship {
     pub motion: Motion,
     pub render: Renderable<RenderTriangle>,
     pub dead: bool,
+    pub life: Flint,
 }
 
 pub struct Projectile {
@@ -26,6 +27,7 @@ pub struct Projectile {
     pub render: Renderable<RenderRectangle>,
     pub dead: bool,
     pub pid: usize,
+    pub dmg: Flint,
 }
 
 pub struct Particle {
@@ -41,6 +43,7 @@ pub struct Star {
     pub render: Renderable<RenderRectangle>,
     pub counter: u8,
     pub toggle: bool,
+    pub amount: u8,
 }
 
 impl Entities {

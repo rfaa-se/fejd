@@ -25,7 +25,7 @@ impl Spawner {
         };
 
         let render = Renderable::<RenderTriangle>::new(
-            RenderColor::GREEN,
+            RenderColor::DIMGRAY,
             body.shape.into(),
             rotation.y.to_num::<f32>().atan2(rotation.x.to_num()),
         );
@@ -42,6 +42,7 @@ impl Spawner {
             motion,
             render,
             dead: false,
+            life: Flint::from_num(10),
         }
     }
 
@@ -54,7 +55,7 @@ impl Spawner {
         pid: usize,
     ) -> Projectile {
         let body = Body {
-            shape: FlintRectangle::from_centroid(centroid, Flint::from_num(2), Flint::from_num(2)),
+            shape: FlintRectangle::from_centroid(centroid, Flint::from_num(2), Flint::from_num(1)),
             rotation,
         };
 
@@ -63,7 +64,7 @@ impl Spawner {
         rec.y = render_centroid.y;
 
         let render = Renderable::<RenderRectangle>::new(
-            RenderColor::GREEN,
+            RenderColor::LIGHTYELLOW,
             rec,
             body.rotation
                 .y
@@ -88,6 +89,7 @@ impl Spawner {
             render,
             dead: false,
             pid,
+            dmg: Flint::from_num(1),
         }
     }
 
@@ -113,7 +115,7 @@ impl Spawner {
         };
 
         let render = Renderable::<RenderVector2>::new(
-            RenderColor::GREEN,
+            RenderColor::LIGHTSKYBLUE,
             render_centroid,
             rotation.y.to_num::<f32>().atan2(rotation.x.to_num()),
         );
@@ -180,6 +182,8 @@ impl Spawner {
         centroid: &FlintVec2,
         rotation: FlintVec2,
         counter: u8,
+        amount: u8,
+        toggle: bool,
         width: Flint,
         height: Flint,
         color: RenderColor,
@@ -199,7 +203,14 @@ impl Spawner {
             body,
             render,
             counter,
-            toggle: false,
+            amount,
+            toggle,
         }
+    }
+
+    pub fn spawn_explosion_particles(&self, _centroid: &FlintVec2, _amount: u8) -> Vec<Particle> {
+        let mut explosion = Vec::new();
+
+        explosion
     }
 }

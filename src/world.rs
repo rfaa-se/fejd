@@ -78,16 +78,18 @@ impl World {
         }
 
         // spawn stars
-        for _ in 0..32 {
+        for _ in 0..64 {
+            let width = self.rng.u8(1..2);
+            let height = self.rng.u8(1..2);
             let centroid = FlintVec2::new(
-                Flint::from_num(self.rng.i32(1..128)),
-                Flint::from_num(self.rng.i32(1..128)),
+                Flint::from_num(self.rng.i32((1 + width as i32)..(512 - width as i32))),
+                Flint::from_num(self.rng.i32((1 + height as i32)..(512 - height as i32))),
             );
             let rotation = FlintVec2::rotation_north();
             let color = RenderColor::new(
-                self.rng.u8(0..255),
-                self.rng.u8(0..255),
-                self.rng.u8(0..255),
+                self.rng.u8(180..255),
+                self.rng.u8(180..255),
+                self.rng.u8(180..255),
                 self.rng.u8(0..255),
             );
 
@@ -95,8 +97,10 @@ impl World {
                 &centroid,
                 rotation,
                 self.rng.u8(u8::MIN..u8::MAX),
-                Flint::from_num(self.rng.u8(1..2)),
-                Flint::from_num(self.rng.u8(1..2)),
+                self.rng.u8(0..15),
+                self.rng.bool(),
+                Flint::from_num(width),
+                Flint::from_num(height),
                 color,
             );
 
@@ -135,7 +139,8 @@ impl World {
         }
 
         // update all logic systems
-        self.logic.update(map, &mut self.entities);
+        self.logic
+            .update(map, &mut self.entities, &self.spawner, &mut self.rng);
 
         self.tick += 1;
     }
@@ -157,6 +162,7 @@ impl World {
         self.render.draw(
             &mut rrh.begin_mode2D(self.camera),
             map,
+            &self.camera,
             &self.entities,
             debug,
             delta,

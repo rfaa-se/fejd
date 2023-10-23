@@ -123,6 +123,14 @@ impl Renderable<RenderTriangle> {
             .get_centroid()
             .lerp(self.live.shape.get_centroid(), amount)
     }
+
+    pub fn lerp(&self, amount: f32) -> RenderTriangle {
+        RenderTriangle {
+            v1: self.lerp_v1(amount),
+            v2: self.lerp_v2(amount),
+            v3: self.lerp_v3(amount),
+        }
+    }
 }
 
 impl From<FlintTriangle> for RenderTriangle {

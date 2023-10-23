@@ -48,10 +48,15 @@ impl Command {
                 }
 
                 // spawn thrust particles
+
+                // get the unrotated "bottom middle"
+                // TODO: + one unit below to not make the particles spawn inside the ship
                 let centroid = FlintVec2 {
                     x: (p.body.shape.v1.x + p.body.shape.v3.x) / 2,
                     y: (p.body.shape.v1.y + p.body.shape.v3.y) / 2,
                 };
+
+                // make sure it's rotated correctly
                 let centroid =
                     centroid.rotate(&p.body.rotation.radians(), &p.body.shape.get_centroid());
 
@@ -77,11 +82,11 @@ impl Command {
                     render_centroid.y += ss * rotation.y.to_num::<f32>();
                     s
                 } else {
-                    let s = Flint::from_num(0.4);
+                    let s = -p.motion.speed;
                     let ss = s.to_num::<f32>();
                     let (sin, cos) = p.render.live.rotation.sin_cos();
-                    render_centroid.x += ss * (cos);
-                    render_centroid.y += ss * (sin);
+                    render_centroid.x += ss * cos;
+                    render_centroid.y += ss * sin;
                     s
                 };
 

@@ -1,3 +1,5 @@
+use fastrand::Rng;
+
 use crate::{
     components::{
         logic::{Body, Motion},
@@ -5,6 +7,7 @@ use crate::{
     },
     entities::Entities,
     math::{Flint, FlintRectangle, FlintTriangle, FlintVec2},
+    spawner::Spawner,
     world::Map,
 };
 
@@ -19,7 +22,7 @@ impl LogicSystem {
         }
     }
 
-    pub fn update(&self, map: &Map, entities: &mut Entities) {
+    pub fn update(&self, map: &Map, entities: &mut Entities, spawner: &Spawner, rng: &mut Rng) {
         // RENDER
         // update render past bodies,
         // this is so we can interpolate between past and live bodies when drawing
@@ -27,6 +30,7 @@ impl LogicSystem {
 
         // LOGIC
         // update game logic
+        self.update_collision_detection(entities, spawner, rng);
         self.update_dead(entities);
         self.update_motion(map, entities);
         self.update_lifetime(entities);
@@ -40,12 +44,66 @@ impl LogicSystem {
         self.update_render_live(entities);
     }
 
+    fn update_collision_detection(
+        &self,
+        entities: &mut Entities,
+        spawner: &Spawner,
+        _rng: &mut Rng,
+    ) {
+        // TODO: fix quad or kd tree for collisions
+
+        // projectile - player
+        for projectile in entities.projectiles.iter_mut() {
+            for player in entities.players.iter_mut() {
+                let point = match get_collision_point_rec_tri(
+                    &projectile.body,
+                    &projectile.motion,
+                    &player.body,
+                ) {
+                    Some(point) => point,
+                    None => continue,
+                };
+
+                projectile.dead = true;
+                player.life -= projectile.dmg;
+
+                let explosion = spawner.spawn_explosion_particles(&point, 16);
+                entities.particles.extend(explosion);
+
+                if player.life > 0 {
+                    continue;
+                }
+
+                player.dead = true;
+                let explosion =
+                    spawner.spawn_explosion_particles(&player.body.shape.get_centroid(), 128);
+                entities.particles.extend(explosion);
+            }
+        }
+
+        // player - player
+        for i in 0..entities.players.len() - 1 {
+            let (left, right) = entities.players.split_at_mut(i + 1);
+            let p1 = &mut left[i];
+
+            for p2 in right.iter_mut() {
+                p2.dead = false;
+                p1.dead = false;
+            }
+        }
+    }
+
     fn update_color_alpha(&self, entities: &mut Entities) {
         // particles
         entities
             .particles
             .iter_mut()
-            .for_each(|x| apply_color_alpha_decrease(&mut x.render.color, 24));
+            .for_each(|x| apply_color_alpha_twinkle(&mut x.render.color, 24, false, true));
+
+        // stars
+        entities.stars.iter_mut().for_each(|x| {
+            apply_color_alpha_twinkle(&mut x.render.color, x.amount, x.toggle, false)
+        });
     }
 
     fn update_motion(&self, _map: &Map, entities: &mut Entities) {
@@ -56,20 +114,16 @@ impl LogicSystem {
         });
 
         // projectiles
-        for entity in entities.projectiles.iter_mut() {
-            // apply velocity
-            apply_velocity_rectangle(&mut entity.body, &entity.motion);
-
+        entities.projectiles.iter_mut().for_each(|x| {
+            apply_velocity_rectangle(&mut x.body, &x.motion);
             // no deceleration on projectiles
-        }
+        });
 
         // particles
-        for entity in entities.particles.iter_mut() {
-            // apply velocity
-            apply_velocity_vector2(&mut entity.body, &entity.motion);
-
+        entities.particles.iter_mut().for_each(|x| {
+            apply_velocity_vector2(&mut x.body, &x.motion);
             // no deceleration on particles
-        }
+        });
     }
 
     fn update_render_past(&self, entities: &mut Entities) {
@@ -161,22 +215,34 @@ impl LogicSystem {
 }
 
 fn apply_counter_toggle(counter: &mut u8, toggle: &mut bool) {
+    if *toggle {
+        if *counter != u8::MAX {
+            *counter += 1;
+        }
+    } else {
+        if *counter != u8::MIN {
+            *counter -= 1;
+        }
+    }
+
     if *counter == u8::MAX || *counter == u8::MIN {
         *toggle = !*toggle;
     }
-
-    if *toggle {
-        *counter += 1;
-    } else {
-        *counter -= 1;
-    }
 }
 
-fn apply_color_alpha_decrease(color: &mut RenderColor, amount: u8) {
-    if color.a >= amount {
-        color.a -= amount;
+fn apply_color_alpha_twinkle(color: &mut RenderColor, amount: u8, add: bool, minmax: bool) {
+    if add {
+        if color.a <= u8::MAX - amount {
+            color.a += amount;
+        } else if minmax {
+            color.a = u8::MAX;
+        }
     } else {
-        color.a = 0;
+        if color.a >= amount {
+            color.a -= amount;
+        } else if minmax {
+            color.a = u8::MIN;
+        }
     }
 }
 
@@ -245,4 +311,12 @@ fn is_out_of_bounds_rectangle(body: &Body<FlintRectangle>, map: &Map) -> bool {
     }
 
     false
+}
+
+fn get_collision_point_rec_tri(
+    _rec: &Body<FlintRectangle>,
+    _rec_motion: &Motion,
+    _tri: &Body<FlintTriangle>,
+) -> Option<FlintVec2> {
+    None
 }
