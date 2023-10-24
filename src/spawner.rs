@@ -101,6 +101,8 @@ impl Spawner {
         speed: Flint,
         relative_speed: Flint,
         lifetime: i32,
+        color: RenderColor,
+        amount: u8, // TODO: naming...
     ) -> Particle {
         let body = Body {
             shape: centroid.clone(),
@@ -115,7 +117,7 @@ impl Spawner {
         };
 
         let render = Renderable::<RenderVector2>::new(
-            RenderColor::LIGHTSKYBLUE,
+            color,
             render_centroid,
             rotation.y.to_num::<f32>().atan2(rotation.x.to_num()),
         );
@@ -126,6 +128,7 @@ impl Spawner {
             lifetime,
             render,
             dead: false,
+            amount,
         }
     }
 
@@ -166,9 +169,20 @@ impl Spawner {
                 let pos = FlintVec2::new(neg + idx, Flint::ZERO).rotate(&rad90, &zero);
                 let c = *centroid + pos;
                 let rc = render_centroid - RenderVector2::new(pos.x.to_num(), pos.y.to_num());
-                let s = min_speed + Flint::from_num(rng.i32(0..6));
-                let l = rng.i32(2..6) + j;
-                let p = self.spawn_particle(&c, rc, rotation, s, relative_speed, l);
+                let speed = min_speed + Flint::from_num(rng.i32(0..6));
+                let lifetime = rng.i32(2..6) + j;
+                let color = RenderColor::LIGHTSKYBLUE;
+                let amount = 24;
+                let p = self.spawn_particle(
+                    &c,
+                    rc,
+                    rotation,
+                    speed,
+                    relative_speed,
+                    lifetime,
+                    color,
+                    amount,
+                );
 
                 particles.push(p);
             }
@@ -208,8 +222,43 @@ impl Spawner {
         }
     }
 
-    pub fn spawn_explosion_particles(&self, _centroid: &FlintVec2, _amount: u8) -> Vec<Particle> {
+    pub fn spawn_explosion_particles(
+        &self,
+        centroid: &FlintVec2,
+        amount: u8,
+        rng: &mut Rng,
+    ) -> Vec<Particle> {
         let mut explosion = Vec::new();
+
+        for _ in 0..amount {
+            let degrees = rng.i32(0..360);
+            let radians = degrees * (Flint::PI / 180);
+            let rotation = FlintVec2::new(cordic::cos(radians), cordic::sin(radians));
+            let rc = RenderVector2::new(centroid.x.to_num(), centroid.y.to_num());
+            let speed = Flint::from_num(rng.i32(50..500)) / 100;
+            let relative_speed = Flint::from_num(0);
+            // let lifetime = rng.i32(6..18);
+            let color = RenderColor::new(
+                rng.u8(240..=255),
+                rng.u8(180..200),
+                rng.u8(0..32),
+                rng.u8(240..=255),
+            );
+            let amount = rng.u8(24..56);
+            let lifetime = (color.a / amount) as i32;
+            let p = self.spawn_particle(
+                centroid,
+                rc,
+                rotation,
+                speed,
+                relative_speed,
+                lifetime,
+                color,
+                amount,
+            );
+
+            explosion.push(p);
+        }
 
         explosion
     }

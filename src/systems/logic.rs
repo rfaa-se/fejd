@@ -48,7 +48,7 @@ impl LogicSystem {
         &self,
         entities: &mut Entities,
         spawner: &Spawner,
-        _rng: &mut Rng,
+        rng: &mut Rng,
     ) {
         // TODO: fix quad or kd tree for collisions
 
@@ -67,7 +67,7 @@ impl LogicSystem {
                 projectile.dead = true;
                 player.life -= projectile.dmg;
 
-                let explosion = spawner.spawn_explosion_particles(&point, 16);
+                let explosion = spawner.spawn_explosion_particles(&point, 32, rng);
                 entities.particles.extend(explosion);
 
                 if player.life > 0 {
@@ -76,7 +76,7 @@ impl LogicSystem {
 
                 player.dead = true;
                 let explosion =
-                    spawner.spawn_explosion_particles(&player.body.shape.get_centroid(), 128);
+                    spawner.spawn_explosion_particles(&player.body.shape.get_centroid(), 128, rng);
                 entities.particles.extend(explosion);
             }
         }
@@ -98,7 +98,7 @@ impl LogicSystem {
         entities
             .particles
             .iter_mut()
-            .for_each(|x| apply_color_alpha_twinkle(&mut x.render.color, 24, false, true));
+            .for_each(|x| apply_color_alpha_twinkle(&mut x.render.color, x.amount, false, true));
 
         // stars
         entities.stars.iter_mut().for_each(|x| {

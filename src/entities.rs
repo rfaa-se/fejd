@@ -36,6 +36,7 @@ pub struct Particle {
     pub lifetime: i32,
     pub render: Renderable<Vector2>,
     pub dead: bool,
+    pub amount: u8, // TODO: naming...
 }
 
 pub struct Star {
@@ -43,7 +44,7 @@ pub struct Star {
     pub render: Renderable<RenderRectangle>,
     pub counter: u8,
     pub toggle: bool,
-    pub amount: u8,
+    pub amount: u8, // TODO: naming
 }
 
 impl Entities {

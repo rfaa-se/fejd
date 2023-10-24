@@ -156,6 +156,14 @@ impl GameState {
         if rh.is_key_down(KeyboardKey::KEY_SPACE) {
             self.actions.insert(Action::Command(Command::Shoot));
         }
+
+        if rh.is_key_pressed(KeyboardKey::KEY_LEFT_CONTROL) {
+            self.actions.insert(Action::Command(Command::Explode));
+        }
+
+        if rh.is_key_down(KeyboardKey::KEY_RIGHT_CONTROL) {
+            self.actions.insert(Action::Command(Command::Explode));
+        }
     }
 
     pub fn update(&mut self, bus: &mut Bus) {
@@ -207,7 +215,8 @@ impl GameState {
 
         self.world.draw(rrh, self.debug, delta);
 
-        if self.debug {
+        // if self.debug {
+        if true {
             let text = format!("{} pid", self.pid);
             rrh.draw_text(
                 &text,
@@ -233,8 +242,8 @@ impl GameState {
             match action {
                 Action::Initialize { pid, players, seed } => {
                     // TODO: map should be configurable
-                    let width = Flint::from_num(800);
-                    let height = Flint::from_num(600);
+                    let width = Flint::from_num(1600);
+                    let height = Flint::from_num(1400);
                     let map = Map {
                         // four spawn points for this map
                         spawns: vec![

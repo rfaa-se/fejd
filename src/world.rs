@@ -168,7 +168,8 @@ impl World {
             delta,
         );
 
-        if debug {
+        // if debug {
+        if true {
             // draw some debug data
             let text = format!("{} ents", self.entities.get_count());
             rrh.draw_text(

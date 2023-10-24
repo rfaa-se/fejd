@@ -15,6 +15,7 @@ pub enum Command {
     Accelerate,
     Decelerate,
     Shoot,
+    Explode,
 }
 
 impl Command {
@@ -144,6 +145,21 @@ impl Command {
                 );
 
                 entities.projectiles.push(projectile);
+            }
+            Command::Explode => {
+                let explosion = spawner.spawn_explosion_particles(
+                    &FlintVec2::new(Flint::from_num(300), Flint::from_num(300)),
+                    16,
+                    rng,
+                );
+                entities.particles.extend(explosion);
+
+                let explosion = spawner.spawn_explosion_particles(
+                    &FlintVec2::new(Flint::from_num(500), Flint::from_num(300)),
+                    128,
+                    rng,
+                );
+                entities.particles.extend(explosion);
             }
         }
     }

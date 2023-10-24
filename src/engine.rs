@@ -93,9 +93,9 @@ impl Engine {
             EngineRequestMessage::SetTicksPerSecond(16),
         )));
 
-        // enable debug mode by default
+        // disable debug mode by default
         self.bus.send(Message::Request(RequestMessage::Engine(
-            EngineRequestMessage::SetDebug(true),
+            EngineRequestMessage::SetDebug(false),
         )));
 
         // set the state to menu by default
