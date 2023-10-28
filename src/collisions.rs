@@ -37,43 +37,74 @@
 
 use crate::math::{Flint, FlintVec2};
 
-pub fn intersects(axes_alpha: &[FlintVec2], axes_beta: &[FlintVec2]) -> bool {
+pub fn project(shape_alpha: &[FlintVec2], axis: FlintVec2) -> FlintVec2 {
+    // beratna
+    let mut min = axis.dot(&shape_alpha[0]);
+    let mut max = min;
+
+    for i in 1..shape_alpha.len() {
+        let p = axis.dot(&shape_alpha[i]);
+
+        if p < min {
+            min = p;
+        } else if p > max {
+            max = p;
+        }
+    }
+
+    FlintVec2::new(min, max)
+}
+
+pub fn overlap(p1: FlintVec2, p2: FlintVec2) -> bool {
+    // p1 = (0, 1);
+    // p2 = (2, 3);
+
+    // p1 = (4, 6);
+    // p2 = (5, 5);
+    // 6 > 5 || 4 > 5
+    p1.y > p2.x || p1.x > p2.y
+}
+
+pub fn intersects(shape_alpha: &[FlintVec2], shape_beta: &[FlintVec2]) -> bool {
     // calculate projections /
 
-    let mut min_alpha = Flint::MAX;
-    let mut max_alpha = Flint::MIN;
-    let mut min_beta = Flint::MAX;
-    let mut max_beta = Flint::MAX;
-
-    for i in 0..axes_alpha.len() {
-        let edge = axes_alpha[i] - axes_alpha[if i + 1 == axes_alpha.len() { 0 } else { i + 1 }];
+    let mut axes1 = Vec::new();
+    for i in 0..shape_alpha.len() {
+        let edge = shape_alpha[i] - shape_alpha[if i + 1 == shape_alpha.len() { 0 } else { i + 1 }];
         let perp = edge.perpendicular();
-        let dot = perp.dot(&axes_alpha[i]);
-
-        if dot < min_alpha {
-            min_alpha = dot;
-        } else if dot > max_alpha {
-            max_alpha = dot;
-        }
+        axes1.push(perp);
     }
-    let proj_alpha = FlintVec2::new(min_alpha, max_alpha);
 
-    for i in 0..axes_beta.len() {
-        let edge = axes_beta[i] - axes_beta[if i + 1 == axes_beta.len() { 0 } else { i + 1 }];
-        let perp = edge.perpendicular();
-        let dot = perp.dot(&axes_beta[i]);
+    for i in 0..axes1.len() {
+        let axis = axes1[i];
 
-        if dot < min_beta {
-            min_beta = dot;
-        } else if dot > max_beta {
-            max_beta = dot;
+        let p1 = project(shape_alpha, axis); // p1 = [FlintVec, FlintVec]
+        let p2 = project(shape_beta, axis);
+
+        if !overlap(p1, p2) {
+            return false;
         }
     }
 
-    let proj_beta = FlintVec2::new(min_beta, max_beta);
+    // HIT
+    //let proj_alpha = FlintVec2::new(min_alpha, max_alpha);
 
-    if min_alpha >= max_beta || min_beta >= max_alpha {
-        return false;
+    let mut axes2 = Vec::new();
+    for i in 0..shape_beta.len() {
+        let edge = shape_beta[i] - shape_beta[if i + 1 == shape_beta.len() { 0 } else { i + 1 }];
+        let perp = edge.perpendicular();
+        axes2.push(perp);
+    }
+
+    for i in 0..axes2.len() {
+        let axis = axes2[i];
+
+        let p1 = project(shape_alpha, axis); // p1 = [FlintVec, FlintVec]
+        let p2 = project(shape_beta, axis);
+
+        if !overlap(p1, p2) {
+            return false;
+        }
     }
 
     true

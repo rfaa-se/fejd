@@ -29,16 +29,21 @@ impl Body<FlintRectangle> {
                 FlintVec2 {
                     x: self.shape.point.x + self.shape.width,
                     y: self.shape.point.y,
-                },
+                }
+                .rotate(&self.rotation.radians(), &self.shape.get_centroid()),
                 FlintVec2 {
                     x: self.shape.point.x + self.shape.width,
                     y: self.shape.point.y + self.shape.height,
-                },
+                }
+                .rotate(&self.rotation.radians(), &self.shape.get_centroid()),
                 FlintVec2 {
                     x: self.shape.point.x,
                     y: self.shape.point.y + self.shape.height,
-                },
+                }
+                .rotate(&self.rotation.radians(), &self.shape.get_centroid()),
             ]);
+
+            self.dirty = false;
         }
 
         &self.axes
@@ -47,6 +52,22 @@ impl Body<FlintRectangle> {
 
 impl Body<FlintTriangle> {
     pub fn get_axes(&mut self) -> &Vec<FlintVec2> {
+        if self.dirty {
+            self.axes.clear();
+            self.axes.append(&mut vec![
+                self.shape
+                    .v1
+                    .rotate(&self.rotation.radians(), &self.shape.get_centroid()),
+                self.shape
+                    .v2
+                    .rotate(&self.rotation.radians(), &self.shape.get_centroid()),
+                self.shape
+                    .v3
+                    .rotate(&self.rotation.radians(), &self.shape.get_centroid()),
+            ]);
+            self.dirty = false;
+        };
+
         &self.axes
     }
 }

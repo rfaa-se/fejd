@@ -72,10 +72,10 @@ impl LogicSystem {
                 //     None => continue,
                 // };
 
-                let axes_proj = projectile.body.get_axes();
-                let axes_play = player.body.get_axes();
+                let shape_alpha = projectile.body.get_axes();
+                let shape_beta = player.body.get_axes();
 
-                if !crate::collisions::intersects(axes_proj, axes_play) {
+                if !crate::collisions::intersects(shape_alpha, shape_beta) {
                     continue;
                 }
 
