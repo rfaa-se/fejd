@@ -40,6 +40,13 @@ impl FlintRectangle {
             height,
         }
     }
+
+    pub fn get_centroid(&self) -> FlintVec2 {
+        FlintVec2 {
+            x: self.point.x + self.width / 2,
+            y: self.point.y + self.height / 2,
+        }
+    }
 }
 
 impl FlintVec2 {
@@ -112,9 +119,15 @@ impl FlintVec2 {
         }
     }
 
-    pub fn _normalize(&self) -> FlintVec2 {
-        let mag = self._magnitude();
-        // TODO: possible div by 0
+    pub fn normalize(&self) -> FlintVec2 {
+        let mag = self.magnitude();
+
+        if mag == Flint::ZERO {
+            return FlintVec2 {
+                x: Flint::ZERO,
+                y: Flint::ZERO,
+            };
+        }
 
         FlintVec2 {
             x: self.x / mag,
@@ -122,8 +135,19 @@ impl FlintVec2 {
         }
     }
 
-    pub fn _magnitude(&self) -> Flint {
+    pub fn perpendicular(&self) -> FlintVec2 {
+        FlintVec2 {
+            x: -self.y,
+            y: self.x,
+        }
+    }
+
+    pub fn magnitude(&self) -> Flint {
         cordic::sqrt(self.x * self.x + self.y * self.y)
+    }
+
+    pub fn dot(&self, other: &FlintVec2) -> Flint {
+        Flint::from_num(self.x * other.x + self.y * other.y)
     }
 }
 

@@ -22,6 +22,8 @@ impl Spawner {
                 Flint::from_num(31),
             ),
             rotation: rotation.clone(),
+            dirty: true,
+            axes: Vec::new(),
         };
 
         let render = Renderable::<RenderTriangle>::new(
@@ -57,6 +59,8 @@ impl Spawner {
         let body = Body {
             shape: FlintRectangle::from_centroid(centroid, Flint::from_num(2), Flint::from_num(1)),
             rotation,
+            dirty: true,
+            axes: Vec::new(),
         };
 
         let mut rec: RenderRectangle = body.shape.into();
@@ -107,6 +111,8 @@ impl Spawner {
         let body = Body {
             shape: centroid.clone(),
             rotation,
+            dirty: true,
+            axes: Vec::new(),
         };
 
         let motion = Motion {
@@ -172,7 +178,7 @@ impl Spawner {
                 let speed = min_speed + Flint::from_num(rng.i32(0..6));
                 let lifetime = rng.i32(2..6) + j;
                 let color = RenderColor::LIGHTSKYBLUE;
-                let amount = 24;
+                let amount = 0;
                 let p = self.spawn_particle(
                     &c,
                     rc,
@@ -205,6 +211,8 @@ impl Spawner {
         let body = Body {
             shape: FlintRectangle::from_centroid(centroid, width, height),
             rotation,
+            dirty: true,
+            axes: Vec::new(),
         };
 
         let render = Renderable::<RenderRectangle>::new(

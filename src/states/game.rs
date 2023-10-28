@@ -28,6 +28,7 @@ pub struct GameState {
     rcmds: HashMap<u64, ReceivedCommands>,
     empty: Vec<Vec<Command>>,
     debug: bool,
+    paused: bool,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
@@ -37,6 +38,7 @@ enum Action {
     Command(Command),
     GetDebug,
     ToggleDebug,
+    TogglePause,
 }
 
 struct ReceivedCommands {
@@ -100,6 +102,7 @@ impl GameState {
             rcmds: HashMap::new(),
             empty: Vec::new(),
             debug: false,
+            paused: false,
         }
     }
 
@@ -126,6 +129,7 @@ impl GameState {
         self.tick = 0;
         self.init = false;
         self.stalling = false;
+        self.paused = false;
     }
 
     pub fn input(&mut self, rh: &RaylibHandle) {
@@ -135,6 +139,14 @@ impl GameState {
 
         if rh.is_key_pressed(KeyboardKey::KEY_D) {
             self.actions.insert(Action::ToggleDebug);
+        }
+        if rh.is_key_pressed(KeyboardKey::KEY_P) {
+            self.actions.insert(Action::TogglePause);
+        }
+
+        // TODO: make sure we don't insert duplicate commands
+        if self.paused {
+            return;
         }
 
         if rh.is_key_down(KeyboardKey::KEY_LEFT) {
@@ -169,7 +181,7 @@ impl GameState {
     pub fn update(&mut self, bus: &mut Bus) {
         self.action(bus);
 
-        if !self.init {
+        if !self.init || self.paused {
             return;
         }
 
@@ -212,6 +224,8 @@ impl GameState {
         if !self.init {
             return;
         }
+
+        let delta = if self.paused { 1.0 } else { delta };
 
         self.world.draw(rrh, self.debug, delta);
 
@@ -310,6 +324,9 @@ impl GameState {
                     bus.send(Message::Request(RequestMessage::Engine(
                         EngineRequestMessage::SetDebug(!self.debug),
                     )));
+                }
+                Action::TogglePause => {
+                    self.paused = !self.paused;
                 }
             }
         }

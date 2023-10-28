@@ -83,6 +83,11 @@ impl Command {
                     render_centroid.y += ss * rotation.y.to_num::<f32>();
                     s
                 } else {
+                    // TODO: there's something funky here, some particles on the edge when
+                    // accelerating and turning look off.. why?
+                    // if s is set to something like 0.4 it looks 'better',
+                    // but the range of the exhaust is too long
+                    // perhaps this makes sense..?
                     let s = -p.motion.speed;
                     let ss = s.to_num::<f32>();
                     let (sin, cos) = p.render.live.rotation.sin_cos();

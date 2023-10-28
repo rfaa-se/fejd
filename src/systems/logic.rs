@@ -52,20 +52,39 @@ impl LogicSystem {
     ) {
         // TODO: fix quad or kd tree for collisions
 
+        // for projectile in entities.projectiles.iter_mut() {
+        //     for player in entities.players.iter_mut() {
+        //         if projectile.body.intersects(&player.body) {
+        //             player.life -= projectile.dmg;
+        //         }
+        //     }
+        // }
+
         // projectile - player
         for projectile in entities.projectiles.iter_mut() {
             for player in entities.players.iter_mut() {
-                let point = match get_collision_point_rec_tri(
-                    &projectile.body,
-                    &projectile.motion,
-                    &player.body,
-                ) {
-                    Some(point) => point,
-                    None => continue,
-                };
+                // let point = match get_collision_point_rec_tri(
+                //     &projectile.body,
+                //     &projectile.motion,
+                //     &player.body,
+                // ) {
+                //     Some(point) => point,
+                //     None => continue,
+                // };
+
+                let axes_proj = projectile.body.get_axes();
+                let axes_play = player.body.get_axes();
+
+                if !crate::collisions::intersects(axes_proj, axes_play) {
+                    continue;
+                }
 
                 projectile.dead = true;
                 player.life -= projectile.dmg;
+
+                // let's go with the projectile point for now
+                // TODO: projectile top?
+                let point = projectile.body.shape.point;
 
                 let explosion = spawner.spawn_explosion_particles(&point, 32, rng);
                 entities.particles.extend(explosion);
@@ -82,15 +101,15 @@ impl LogicSystem {
         }
 
         // player - player
-        for i in 0..entities.players.len() - 1 {
-            let (left, right) = entities.players.split_at_mut(i + 1);
-            let p1 = &mut left[i];
+        // for i in 0..entities.players.len() - 1 {
+        //     let (left, right) = entities.players.split_at_mut(i + 1);
+        //     let p1 = &mut left[i];
 
-            for p2 in right.iter_mut() {
-                p2.dead = false;
-                p1.dead = false;
-            }
-        }
+        //     for p2 in right.iter_mut() {
+        //         p2.dead = false;
+        //         p1.dead = false;
+        //     }
+        // }
     }
 
     fn update_color_alpha(&self, entities: &mut Entities) {
@@ -157,25 +176,25 @@ impl LogicSystem {
         entities
             .players
             .iter_mut()
-            .for_each(|x| x.render.live = x.body.into());
+            .for_each(|x| x.render.live = (&x.body).into());
 
         // projectiles
         entities
             .projectiles
             .iter_mut()
-            .for_each(|x| x.render.live = x.body.into());
+            .for_each(|x| x.render.live = (&x.body).into());
 
         // particles
         entities
             .particles
             .iter_mut()
-            .for_each(|x| x.render.live = x.body.into());
+            .for_each(|x| x.render.live = (&x.body).into());
 
         // stars
         entities
             .stars
             .iter_mut()
-            .for_each(|x| x.render.live = x.body.into());
+            .for_each(|x| x.render.live = (&x.body).into());
     }
 
     fn update_out_of_bounds(&self, map: &Map, entities: &mut Entities) {
