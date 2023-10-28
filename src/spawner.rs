@@ -195,6 +195,11 @@ impl Spawner {
         &self,
         centroid: &FlintVec2,
         rotation: FlintVec2,
+        speed: Flint,
+        relative_speed: Flint,
+        max_speed: Flint,
+        acceleration: Flint,
+        rotation_speed: Flint,
         counter: u8,
         amount: u8,
         toggle: bool,
@@ -207,6 +212,13 @@ impl Spawner {
             rotation,
         };
 
+        let motion = Motion {
+            speed: speed + relative_speed,
+            max_speed,
+            acceleration,
+            rotation_speed,
+        };
+
         let render = Renderable::<RenderRectangle>::new(
             color,
             body.shape.into(),
@@ -215,6 +227,7 @@ impl Spawner {
 
         Star {
             body,
+            motion,
             render,
             counter,
             amount,

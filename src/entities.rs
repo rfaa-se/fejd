@@ -41,6 +41,7 @@ pub struct Particle {
 
 pub struct Star {
     pub body: Body<FlintRectangle>,
+    pub motion: Motion,
     pub render: Renderable<RenderRectangle>,
     pub counter: u8,
     pub toggle: bool,

@@ -85,7 +85,11 @@ impl World {
                 Flint::from_num(self.rng.i32((1 + width as i32)..(512 - width as i32))),
                 Flint::from_num(self.rng.i32((1 + height as i32)..(512 - height as i32))),
             );
-            let rotation = FlintVec2::rotation_north();
+            let rotation = FlintVec2::new(
+                Flint::from_num(self.rng.i8(-100..100)) / 100,
+                Flint::from_num(self.rng.i8(-100..100)) / 100,
+            );
+            //let rotation = FlintVec2::rotation_north();
             let color = RenderColor::new(
                 self.rng.u8(180..255),
                 self.rng.u8(180..255),
@@ -93,10 +97,17 @@ impl World {
                 self.rng.u8(0..255),
             );
 
+            let speed = Flint::from_num(self.rng.i8(-2..2)) / 10;
+
             let star = self.spawner.spawn_star(
                 &centroid,
                 rotation,
-                self.rng.u8(u8::MIN..u8::MAX),
+                speed,                                // speed
+                speed,                                // relative speed
+                speed,                                // max_speed
+                speed,                                // acceleration
+                Flint::from_num(self.rng.u8(0..120)), // rotation speed
+                self.rng.u8(u8::MIN..u8::MAX),        // counter
                 self.rng.u8(0..15),
                 self.rng.bool(),
                 Flint::from_num(width),

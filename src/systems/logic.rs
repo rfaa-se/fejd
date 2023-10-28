@@ -124,6 +124,11 @@ impl LogicSystem {
             apply_velocity_vector2(&mut x.body, &x.motion);
             // no deceleration on particles
         });
+
+        // stars
+        entities.stars.iter_mut().for_each(|x| {
+            apply_velocity_rectangle(&mut x.body, &x.motion);
+        });
     }
 
     fn update_render_past(&self, entities: &mut Entities) {
