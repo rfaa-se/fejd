@@ -1,4 +1,4 @@
-use std::ops::{Add, AddAssign, Mul, Sub};
+use std::ops::{Add, AddAssign, Div, Mul, Sub};
 
 use fixed::types::I20F12;
 
@@ -200,6 +200,17 @@ impl Mul<Flint> for FlintVec2 {
         FlintVec2 {
             x: self.x * rhs,
             y: self.y * rhs,
+        }
+    }
+}
+
+impl Div<Flint> for FlintVec2 {
+    type Output = FlintVec2;
+
+    fn div(self, rhs: Flint) -> Self::Output {
+        FlintVec2 {
+            x: self.x / rhs,
+            y: self.y / rhs,
         }
     }
 }

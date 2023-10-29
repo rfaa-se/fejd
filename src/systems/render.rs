@@ -70,7 +70,13 @@ impl RenderSystem {
         _delta: f32,
     ) {
         // draw world outlines
-        rrh.draw_rectangle_lines(0, 0, map.width_i32, map.height_i32, Engine::DEBUG_TEXT_COLOR);
+        rrh.draw_rectangle_lines(
+            0,
+            0,
+            map.width_i32,
+            map.height_i32,
+            Engine::DEBUG_TEXT_COLOR,
+        );
 
         // TODO: fix better stars, make stars loop across the whole world
         let vec = rrh.get_screen_to_world2D(RenderVector2::new(0.0, 0.0), cam);
@@ -103,7 +109,7 @@ impl RenderSystem {
             // draw a repeating star pattern
             // TODO: could probably add some more pseudo randomness here,
             // to not make it look repeated
-            
+
             let mut x = star.render.live.shape.x as i32;
             let mut y = star.render.live.shape.y as i32;
             let w = star.render.live.shape.width as i32;
@@ -293,8 +299,8 @@ impl RenderSystem {
 
         let (x, y) = (cen.x.round() as i32, cen.y.round() as i32);
 
-        let len =
-            triship.body.shape.width.to_num::<i32>() + triship.body.shape.height.to_num::<i32>();
+        let len = triship.body.live.shape.width.to_num::<i32>()
+            + triship.body.live.shape.height.to_num::<i32>();
 
         rrh.draw_text(
             &format!(
@@ -333,7 +339,11 @@ impl RenderSystem {
         par: &Particle,
         _delta: f32,
     ) {
-        rrh.draw_pixel(par.render.live.shape.x as i32, par.render.live.shape.y as i32, Engine::DEBUG_TEXT_COLOR);
+        rrh.draw_pixel(
+            par.render.live.shape.x as i32,
+            par.render.live.shape.y as i32,
+            Engine::DEBUG_TEXT_COLOR,
+        );
     }
 }
 

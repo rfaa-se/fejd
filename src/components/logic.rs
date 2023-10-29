@@ -1,10 +1,16 @@
 use crate::math::{Flint, FlintRectangle, FlintTriangle, FlintVec2};
 
 pub struct Body<T> {
-    pub shape: T,
-    pub rotation: FlintVec2,
+    pub live: Shape<T>,
+    pub past: Shape<T>,
     pub dirty: bool,
     pub axes: Vec<FlintVec2>,
+}
+
+#[derive(Clone, Copy)]
+pub struct Shape<T> {
+    pub shape: T,
+    pub rotation: FlintVec2,
 }
 
 pub struct Motion {
@@ -15,32 +21,79 @@ pub struct Motion {
 }
 
 impl Body<FlintRectangle> {
-    pub fn get_axes(&mut self) -> &Vec<FlintVec2> {
+    pub fn get_axes(&mut self, include: bool) -> &Vec<FlintVec2> {
         if self.dirty {
-            // TODO: räkna om axes
             self.axes.clear();
+
+            let rec = if include {
+                let dx = (self.live.shape.point.x - self.past.shape.point.x).abs();
+                let x = self.past.shape.point.x;
+
+                let dy = (self.live.shape.point.y - self.past.shape.point.y).abs();
+                let y = self.past.shape.point.y;
+
+                let oc = self.past.shape.get_centroid();
+                let dc = FlintVec2 {
+                    x: (self.live.shape.point.x - oc.x).abs(),
+                    y: (self.live.shape.point.y - oc.y).abs(),
+                };
+                let c = oc + (dc / Flint::from_num(2));
+                let w = ((x + dx) - x).abs() + self.live.shape.width;
+                let h = ((y + dy) - y).abs() + self.live.shape.height;
+                FlintRectangle::from_centroid(&c, w, h)
+            } else {
+                self.live.shape
+            };
 
             self.axes.append(&mut vec![
                 FlintVec2 {
-                    x: self.shape.point.x,
-                    y: self.shape.point.y,
+                    x: rec.point.x,
+                    y: rec.point.y,
                 }
-                .rotate(&self.rotation.radians(), &self.shape.get_centroid()),
+                .rotate(&self.live.rotation.radians(), &rec.get_centroid()),
                 FlintVec2 {
-                    x: self.shape.point.x + self.shape.width,
-                    y: self.shape.point.y,
+                    x: rec.point.x + rec.width,
+                    y: rec.point.y,
                 }
-                .rotate(&self.rotation.radians(), &self.shape.get_centroid()),
+                .rotate(&self.live.rotation.radians(), &rec.get_centroid()),
                 FlintVec2 {
-                    x: self.shape.point.x + self.shape.width,
-                    y: self.shape.point.y + self.shape.height,
+                    x: rec.point.x + rec.width,
+                    y: rec.point.y + rec.height,
                 }
-                .rotate(&self.rotation.radians(), &self.shape.get_centroid()),
+                .rotate(&self.live.rotation.radians(), &rec.get_centroid()),
                 FlintVec2 {
-                    x: self.shape.point.x,
-                    y: self.shape.point.y + self.shape.height,
+                    x: rec.point.x,
+                    y: rec.point.y + rec.height,
                 }
-                .rotate(&self.rotation.radians(), &self.shape.get_centroid()),
+                .rotate(&self.live.rotation.radians(), &rec.get_centroid()),
+                // FlintVec2 { x, y }.rotate(
+                //     &self.live.rotation.radians(),
+                //     &self.live.shape.get_centroid(),
+                // ),
+                // FlintVec2 {
+                //     x: self.live.shape.point.x + self.live.shape.width,
+                //     y: self.live.shape.point.y,
+                // }
+                // .rotate(
+                //     &self.live.rotation.radians(),
+                //     &self.live.shape.get_centroid(),
+                // ),
+                // FlintVec2 {
+                //     x: self.live.shape.point.x + self.live.shape.width,
+                //     y: self.live.shape.point.y + self.live.shape.height,
+                // }
+                // .rotate(
+                //     &self.live.rotation.radians(),
+                //     &self.live.shape.get_centroid(),
+                // ),
+                // FlintVec2 {
+                //     x: self.live.shape.point.x,
+                //     y: self.live.shape.point.y + self.live.shape.height,
+                // }
+                // .rotate(
+                //     &self.live.rotation.radians(),
+                //     &self.live.shape.get_centroid(),
+                // ),
             ]);
 
             self.dirty = false;
@@ -53,17 +106,21 @@ impl Body<FlintRectangle> {
 impl Body<FlintTriangle> {
     pub fn get_axes(&mut self) -> &Vec<FlintVec2> {
         if self.dirty {
+            // TODO: past body?!
             self.axes.clear();
             self.axes.append(&mut vec![
-                self.shape
-                    .v1
-                    .rotate(&self.rotation.radians(), &self.shape.get_centroid()),
-                self.shape
-                    .v2
-                    .rotate(&self.rotation.radians(), &self.shape.get_centroid()),
-                self.shape
-                    .v3
-                    .rotate(&self.rotation.radians(), &self.shape.get_centroid()),
+                self.live.shape.v1.rotate(
+                    &self.live.rotation.radians(),
+                    &self.live.shape.get_centroid(),
+                ),
+                self.live.shape.v2.rotate(
+                    &self.live.rotation.radians(),
+                    &self.live.shape.get_centroid(),
+                ),
+                self.live.shape.v3.rotate(
+                    &self.live.rotation.radians(),
+                    &self.live.shape.get_centroid(),
+                ),
             ]);
             self.dirty = false;
         };

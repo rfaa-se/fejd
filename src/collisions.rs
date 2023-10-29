@@ -35,9 +35,9 @@
 
 // TODO: add intersectable for remaining math shapes
 
-use crate::math::{Flint, FlintVec2};
+use crate::math::FlintVec2;
 
-pub fn project(shape_alpha: &[FlintVec2], axis: FlintVec2) -> FlintVec2 {
+pub fn project(shape_alpha: &[FlintVec2], axis: &FlintVec2) -> FlintVec2 {
     // beratna
     let mut min = axis.dot(&shape_alpha[0]);
     let mut max = min;
@@ -58,6 +58,7 @@ pub fn project(shape_alpha: &[FlintVec2], axis: FlintVec2) -> FlintVec2 {
 pub fn overlap(p1: FlintVec2, p2: FlintVec2) -> bool {
     // p1 = (0, 1);
     // p2 = (2, 3);
+    // 1 > 2 || 0 > 3
 
     // p1 = (4, 6);
     // p2 = (5, 5);
@@ -65,20 +66,22 @@ pub fn overlap(p1: FlintVec2, p2: FlintVec2) -> bool {
     p1.y > p2.x || p1.x > p2.y
 }
 
-pub fn intersects(shape_alpha: &[FlintVec2], shape_beta: &[FlintVec2]) -> bool {
-    // calculate projections /
+fn get_perps(shape: &[FlintVec2]) -> Vec<FlintVec2> {
+    let mut perps = Vec::new();
 
-    let mut axes1 = Vec::new();
-    for i in 0..shape_alpha.len() {
-        let edge = shape_alpha[i] - shape_alpha[if i + 1 == shape_alpha.len() { 0 } else { i + 1 }];
+    for i in 0..shape.len() {
+        let edge = shape[i] - shape[if i + 1 == shape.len() { 0 } else { i + 1 }];
         let perp = edge.perpendicular();
-        axes1.push(perp);
+        perps.push(perp);
     }
 
-    for i in 0..axes1.len() {
-        let axis = axes1[i];
+    perps
+}
 
-        let p1 = project(shape_alpha, axis); // p1 = [FlintVec, FlintVec]
+pub fn intersects(shape_alpha: &[FlintVec2], shape_beta: &[FlintVec2]) -> bool {
+    let axes = get_perps(shape_alpha);
+    for axis in axes.iter() {
+        let p1 = project(shape_alpha, axis);
         let p2 = project(shape_beta, axis);
 
         if !overlap(p1, p2) {
@@ -86,20 +89,9 @@ pub fn intersects(shape_alpha: &[FlintVec2], shape_beta: &[FlintVec2]) -> bool {
         }
     }
 
-    // HIT
-    //let proj_alpha = FlintVec2::new(min_alpha, max_alpha);
-
-    let mut axes2 = Vec::new();
-    for i in 0..shape_beta.len() {
-        let edge = shape_beta[i] - shape_beta[if i + 1 == shape_beta.len() { 0 } else { i + 1 }];
-        let perp = edge.perpendicular();
-        axes2.push(perp);
-    }
-
-    for i in 0..axes2.len() {
-        let axis = axes2[i];
-
-        let p1 = project(shape_alpha, axis); // p1 = [FlintVec, FlintVec]
+    let axes = get_perps(shape_beta);
+    for axis in axes.iter() {
+        let p1 = project(shape_alpha, axis);
         let p2 = project(shape_beta, axis);
 
         if !overlap(p1, p2) {
