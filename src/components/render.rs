@@ -56,8 +56,8 @@ impl From<FlintVec2> for RenderVector2 {
     }
 }
 
-impl From<Body<FlintVec2>> for RenderBody<RenderVector2> {
-    fn from(value: Body<FlintVec2>) -> Self {
+impl From<&Body<FlintVec2>> for RenderBody<RenderVector2> {
+    fn from(value: &Body<FlintVec2>) -> Self {
         Self {
             shape: value.shape.into(),
             rotation: value
@@ -152,8 +152,8 @@ impl From<FlintTriangle> for RenderTriangle {
     }
 }
 
-impl From<Body<FlintTriangle>> for RenderBody<RenderTriangle> {
-    fn from(value: Body<FlintTriangle>) -> Self {
+impl From<&Body<FlintTriangle>> for RenderBody<RenderTriangle> {
+    fn from(value: &Body<FlintTriangle>) -> Self {
         // transform the rotation vector into radians
         let rotation = value
             .rotation
@@ -198,8 +198,8 @@ impl From<FlintRectangle> for RenderRectangle {
     }
 }
 
-impl From<Body<FlintRectangle>> for RenderBody<RenderRectangle> {
-    fn from(value: Body<FlintRectangle>) -> Self {
+impl From<&Body<FlintRectangle>> for RenderBody<RenderRectangle> {
+    fn from(value: &Body<FlintRectangle>) -> Self {
         // transform the rotation vector into radians
         let rotation = value
             .rotation
