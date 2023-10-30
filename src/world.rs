@@ -78,26 +78,41 @@ impl World {
         }
 
         // spawn stars
-        for _ in 0..64 {
+        for i in 0..512 {
             let width = self.rng.u8(1..2);
             let height = self.rng.u8(1..2);
-            let centroid = FlintVec2::new(
-                Flint::from_num(self.rng.i32((1 + width as i32)..(512 - width as i32))),
-                Flint::from_num(self.rng.i32((1 + height as i32)..(512 - height as i32))),
-            );
-            let rotation = FlintVec2::new(
-                Flint::from_num(self.rng.i8(-100..100)) / 100,
-                Flint::from_num(self.rng.i8(-100..100)) / 100,
-            );
+            let mut rotation = FlintVec2::rotation_north();
             //let rotation = FlintVec2::rotation_north();
-            let color = RenderColor::new(
+            let mut color = RenderColor::new(
                 self.rng.u8(180..255),
                 self.rng.u8(180..255),
                 self.rng.u8(180..255),
                 self.rng.u8(0..255),
             );
 
-            let speed = Flint::from_num(self.rng.i8(-2..2)) / 10;
+            let mut speed = Flint::ZERO;
+            if self.rng.i8(1..=6) == 1 {
+                speed = Flint::from_num(self.rng.i8(-1..=1)) / 100;
+                rotation = FlintVec2::new(
+                    Flint::from_num(self.rng.i8(-10..=10)),
+                    Flint::from_num(self.rng.i8(-10..=10)),
+                )
+                .normalize()
+            } else if self.rng.i8(1..=50) == 1 {
+                // comet
+                speed = Flint::from_num(self.rng.i8(2..=4));
+                rotation = FlintVec2::new(
+                    Flint::from_num(self.rng.i8(-10..=10)),
+                    Flint::from_num(self.rng.i8(-10..=10)),
+                )
+                .normalize();
+                color = RenderColor::new(255, 255, 255, 255)
+            }
+
+            let centroid = FlintVec2::new(
+                Flint::from_num(self.rng.i32((1 + width as i32)..(512 - width as i32))),
+                Flint::from_num(self.rng.i32((1 + height as i32)..(512 - height as i32))),
+            );
 
             let star = self.spawner.spawn_star(
                 &centroid,

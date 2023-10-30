@@ -67,7 +67,7 @@ impl RenderSystem {
         map: &Map,
         cam: &Camera2D,
         entities: &Entities,
-        _delta: f32,
+        delta: f32,
     ) {
         // draw world outlines
         rrh.draw_rectangle_lines(
@@ -109,10 +109,11 @@ impl RenderSystem {
             // draw a repeating star pattern
             // TODO: could probably add some more pseudo randomness here,
             // to not make it look repeated
-            let mut x = star.render.live.shape.x as i32;
-            let mut y = star.render.live.shape.y as i32;
-            let w = star.render.live.shape.width as i32;
-            let h = star.render.live.shape.height as i32;
+            let lerp = star.render.lerp(delta);
+            let mut x = lerp.x as i32;
+            let mut y = lerp.y as i32;
+            let w = lerp.width as i32;
+            let h = lerp.height as i32;
 
             while x + w < world_x {
                 x += star_x;
@@ -298,8 +299,8 @@ impl RenderSystem {
 
         let (x, y) = (cen.x.round() as i32, cen.y.round() as i32);
 
-        let len =
-            triship.body.shape.width.to_num::<i32>() + triship.body.shape.height.to_num::<i32>();
+        let len = triship.body.live.shape.width.to_num::<i32>()
+            + triship.body.live.shape.height.to_num::<i32>();
 
         rrh.draw_text(
             &format!(

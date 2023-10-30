@@ -28,18 +28,18 @@ impl Command {
         match self {
             Command::Nop => (),
             Command::RotateLeft => {
-                let rad =
-                    cordic::atan2(p.body.rotation.y, p.body.rotation.x) - p.motion.rotation_speed;
+                let rad = cordic::atan2(p.body.live.rotation.y, p.body.live.rotation.x)
+                    - p.motion.rotation_speed;
 
-                p.body.rotation.x = cordic::cos(rad);
-                p.body.rotation.y = cordic::sin(rad);
+                p.body.live.rotation.x = cordic::cos(rad);
+                p.body.live.rotation.y = cordic::sin(rad);
             }
             Command::RotateRight => {
-                let rad =
-                    cordic::atan2(p.body.rotation.y, p.body.rotation.x) + p.motion.rotation_speed;
+                let rad = cordic::atan2(p.body.live.rotation.y, p.body.live.rotation.x)
+                    + p.motion.rotation_speed;
 
-                p.body.rotation.x = cordic::cos(rad);
-                p.body.rotation.y = cordic::sin(rad);
+                p.body.live.rotation.x = cordic::cos(rad);
+                p.body.live.rotation.y = cordic::sin(rad);
             }
             Command::Accelerate => {
                 p.motion.speed += p.motion.acceleration;
@@ -53,15 +53,17 @@ impl Command {
                 // get the unrotated "bottom middle"
                 // TODO: + one unit below to not make the particles spawn inside the ship
                 let centroid = FlintVec2 {
-                    x: (p.body.shape.v1.x + p.body.shape.v3.x) / 2,
-                    y: (p.body.shape.v1.y + p.body.shape.v3.y) / 2,
+                    x: (p.body.live.shape.v1.x + p.body.live.shape.v3.x) / 2,
+                    y: (p.body.live.shape.v1.y + p.body.live.shape.v3.y) / 2,
                 };
 
                 // make sure it's rotated correctly
-                let centroid =
-                    centroid.rotate(&p.body.rotation.radians(), &p.body.shape.get_centroid());
+                let centroid = centroid.rotate(
+                    &p.body.live.rotation.radians(),
+                    &p.body.live.shape.get_centroid(),
+                );
 
-                let rotation = p.body.rotation.rotate_180();
+                let rotation = p.body.live.rotation.rotate_180();
 
                 // to make the initial rendering look correct we also need to adjust
                 // where we put the render centroid
@@ -119,18 +121,19 @@ impl Command {
             Command::Shoot => {
                 // let's put the projectile a little bit in front of the ship,
                 // first we need to get the rotated tip of the ship
-                let radians = cordic::atan2(p.body.rotation.y, p.body.rotation.x);
+                let radians = cordic::atan2(p.body.live.rotation.y, p.body.live.rotation.x);
                 let mut centroid = p
                     .body
+                    .live
                     .shape
                     .v2
-                    .rotate(&radians, &p.body.shape.get_centroid());
+                    .rotate(&radians, &p.body.live.shape.get_centroid());
 
                 // then we apply the calculated distance to the centroid
                 let distance = Flint::from_num(2);
 
-                centroid.x += distance * p.body.rotation.x;
-                centroid.y += distance * p.body.rotation.y;
+                centroid.x += distance * p.body.live.rotation.x;
+                centroid.y += distance * p.body.live.rotation.y;
 
                 // to make the initial rendering look correct we also need to adjust
                 // where we put the render centroid
@@ -143,7 +146,7 @@ impl Command {
 
                 let projectile = spawner.spawn_projectile(
                     &centroid,
-                    p.body.rotation.clone(),
+                    p.body.live.rotation.clone(),
                     render_centroid,
                     p.motion.speed,
                     pid,

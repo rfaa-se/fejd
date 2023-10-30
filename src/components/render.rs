@@ -59,12 +59,13 @@ impl From<FlintVec2> for RenderVector2 {
 impl From<&Body<FlintVec2>> for RenderBody<RenderVector2> {
     fn from(value: &Body<FlintVec2>) -> Self {
         Self {
-            shape: value.shape.into(),
+            shape: value.live.shape.into(),
             rotation: value
+                .live
                 .rotation
                 .y
                 .to_num::<f32>()
-                .atan2(value.rotation.x.to_num()),
+                .atan2(value.live.rotation.x.to_num()),
         }
     }
 }
@@ -156,12 +157,13 @@ impl From<&Body<FlintTriangle>> for RenderBody<RenderTriangle> {
     fn from(value: &Body<FlintTriangle>) -> Self {
         // transform the rotation vector into radians
         let rotation = value
+            .live
             .rotation
             .y
             .to_num::<f32>()
-            .atan2(value.rotation.x.to_num());
+            .atan2(value.live.rotation.x.to_num());
 
-        let mut shape: RenderTriangle = value.shape.into();
+        let mut shape: RenderTriangle = value.live.shape.into();
         shape.rotate(rotation);
 
         Self { shape, rotation }
@@ -202,12 +204,13 @@ impl From<&Body<FlintRectangle>> for RenderBody<RenderRectangle> {
     fn from(value: &Body<FlintRectangle>) -> Self {
         // transform the rotation vector into radians
         let rotation = value
+            .live
             .rotation
             .y
             .to_num::<f32>()
-            .atan2(value.rotation.x.to_num());
+            .atan2(value.live.rotation.x.to_num());
 
-        let shape: RenderRectangle = value.shape.into();
+        let shape: RenderRectangle = value.live.shape.into();
 
         Self { shape, rotation }
     }

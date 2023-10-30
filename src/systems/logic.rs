@@ -30,6 +30,7 @@ impl LogicSystem {
 
         // LOGIC
         // update game logic
+        self.update_body_past(entities);
         self.update_collision_detection(entities, spawner, rng);
         self.update_dead(entities);
         self.update_motion(map, entities);
@@ -42,6 +43,18 @@ impl LogicSystem {
         // update render live bodies,
         // this is so we can interpolate between past and live bodies when drawing
         self.update_render_live(entities);
+    }
+
+    fn update_body_past(&self, entities: &mut Entities) {
+        entities
+            .players
+            .iter_mut()
+            .for_each(|x| x.body.past = x.body.live);
+
+        entities
+            .projectiles
+            .iter_mut()
+            .for_each(|x| x.body.past = x.body.live);
     }
 
     fn update_collision_detection(
@@ -72,7 +85,7 @@ impl LogicSystem {
                 //     None => continue,
                 // };
 
-                let shape_alpha = projectile.body.get_axes();
+                let shape_alpha = projectile.body.get_axes(true);
                 let shape_beta = player.body.get_axes();
 
                 if !crate::collisions::intersects(shape_alpha, shape_beta) {
@@ -84,7 +97,7 @@ impl LogicSystem {
 
                 // let's go with the projectile point for now
                 // TODO: projectile top?
-                let point = projectile.body.shape.point;
+                let point = projectile.body.live.shape.point;
 
                 let explosion = spawner.spawn_explosion_particles(&point, 32, rng);
                 entities.particles.extend(explosion);
@@ -94,8 +107,11 @@ impl LogicSystem {
                 }
 
                 player.dead = true;
-                let explosion =
-                    spawner.spawn_explosion_particles(&player.body.shape.get_centroid(), 128, rng);
+                let explosion = spawner.spawn_explosion_particles(
+                    &player.body.live.shape.get_centroid(),
+                    128,
+                    rng,
+                );
                 entities.particles.extend(explosion);
             }
         }
@@ -130,12 +146,16 @@ impl LogicSystem {
         entities.players.iter_mut().for_each(|x| {
             apply_velocity_triangle(&mut x.body, &x.motion);
             apply_deceleration(&mut x.motion, &self.deceleration);
+
+            x.body.dirty = true; //x.motion.speed != Flint::ZERO;
         });
 
         // projectiles
         entities.projectiles.iter_mut().for_each(|x| {
             apply_velocity_rectangle(&mut x.body, &x.motion);
             // no deceleration on projectiles
+
+            x.body.dirty = true; //x.motion.speed != Flint::ZERO;
         });
 
         // particles
@@ -296,51 +316,43 @@ fn apply_deceleration(motion: &mut Motion, deceleration: &Flint) {
 }
 
 fn apply_velocity_triangle(body: &mut Body<FlintTriangle>, motion: &Motion) {
-    let velocity = body.rotation * motion.speed;
+    let velocity = body.live.rotation * motion.speed;
 
-    body.shape.v1 += velocity;
-    body.shape.v2 += velocity;
-    body.shape.v3 += velocity;
+    body.live.shape.v1 += velocity;
+    body.live.shape.v2 += velocity;
+    body.live.shape.v3 += velocity;
 }
 
 fn apply_velocity_rectangle(body: &mut Body<FlintRectangle>, motion: &Motion) {
-    let velocity = body.rotation * motion.speed;
+    let velocity = body.live.rotation * motion.speed;
 
-    body.shape.point += velocity;
+    body.live.shape.point += velocity;
 }
 
 fn apply_velocity_vector2(body: &mut Body<FlintVec2>, motion: &Motion) {
-    let velocity = body.rotation * motion.speed;
+    let velocity = body.live.rotation * motion.speed;
 
-    body.shape += velocity;
+    body.live.shape += velocity;
 }
 
 fn is_out_of_bounds_rectangle(body: &Body<FlintRectangle>, map: &Map) -> bool {
     // TODO: rotations
 
-    if body.shape.point.x + body.shape.width < Flint::ZERO {
+    if body.live.shape.point.x + body.live.shape.width < Flint::ZERO {
         return true;
     }
 
-    if body.shape.point.x > map.width {
+    if body.live.shape.point.x > map.width {
         return true;
     }
 
-    if body.shape.point.y + body.shape.height < Flint::ZERO {
+    if body.live.shape.point.y + body.live.shape.height < Flint::ZERO {
         return true;
     }
 
-    if body.shape.point.y > map.height {
+    if body.live.shape.point.y > map.height {
         return true;
     }
 
     false
-}
-
-fn get_collision_point_rec_tri(
-    _rec: &Body<FlintRectangle>,
-    _rec_motion: &Motion,
-    _tri: &Body<FlintTriangle>,
-) -> Option<FlintVec2> {
-    None
 }

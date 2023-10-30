@@ -256,7 +256,7 @@ impl GameState {
             match action {
                 Action::Initialize { pid, players, seed } => {
                     // TODO: map should be configurable
-                    let width = Flint::from_num(600);
+                    let width = Flint::from_num(400);
                     let height = Flint::from_num(400);
                     let map = Map {
                         // four spawn points for this map

@@ -2,7 +2,10 @@ use fastrand::Rng;
 
 use crate::{
     components::logic::{Body, Motion},
-    components::render::{RenderColor, RenderRectangle, RenderTriangle, RenderVector2, Renderable},
+    components::{
+        logic::Shape,
+        render::{RenderColor, RenderRectangle, RenderTriangle, RenderVector2, Renderable},
+    },
     entities::{Particle, Projectile, Star, Triship},
     math::{Flint, FlintRectangle, FlintTriangle, FlintVec2},
 };
@@ -15,20 +18,24 @@ impl Spawner {
     }
 
     pub fn spawn_triship(&self, centroid: &FlintVec2, rotation: &FlintVec2) -> Triship {
-        let body = Body {
+        let shape = Shape {
             shape: FlintTriangle::from_centroid(
                 &centroid,
                 Flint::from_num(26),
                 Flint::from_num(31),
             ),
             rotation: rotation.clone(),
+        };
+        let body = Body {
+            live: shape,
+            past: shape,
             dirty: true,
             axes: Vec::new(),
         };
 
         let render = Renderable::<RenderTriangle>::new(
             RenderColor::DIMGRAY,
-            body.shape.into(),
+            body.live.shape.into(),
             rotation.y.to_num::<f32>().atan2(rotation.x.to_num()),
         );
 
@@ -44,7 +51,7 @@ impl Spawner {
             motion,
             render,
             dead: false,
-            life: Flint::from_num(10),
+            life: Flint::from_num(50),
         }
     }
 
@@ -56,24 +63,30 @@ impl Spawner {
         relative_speed: Flint,
         pid: usize,
     ) -> Projectile {
-        let body = Body {
+        let shape = Shape {
             shape: FlintRectangle::from_centroid(centroid, Flint::from_num(2), Flint::from_num(1)),
             rotation,
+        };
+
+        let body = Body {
+            live: shape,
+            past: shape,
             dirty: true,
             axes: Vec::new(),
         };
 
-        let mut rec: RenderRectangle = body.shape.into();
+        let mut rec: RenderRectangle = body.live.shape.into();
         rec.x = render_centroid.x;
         rec.y = render_centroid.y;
 
         let render = Renderable::<RenderRectangle>::new(
             RenderColor::LIGHTYELLOW,
             rec,
-            body.rotation
+            body.live
+                .rotation
                 .y
                 .to_num::<f32>()
-                .atan2(body.rotation.x.to_num()),
+                .atan2(body.live.rotation.x.to_num()),
         );
 
         let speed = Flint::from_num(14);
@@ -108,9 +121,14 @@ impl Spawner {
         color: RenderColor,
         amount: u8, // TODO: naming...
     ) -> Particle {
-        let body = Body {
+        let shape = Shape {
             shape: centroid.clone(),
             rotation,
+        };
+
+        let body = Body {
+            live: shape,
+            past: shape,
             dirty: true,
             axes: Vec::new(),
         };
@@ -213,9 +231,14 @@ impl Spawner {
         height: Flint,
         color: RenderColor,
     ) -> Star {
-        let body = Body {
+        let shape = Shape {
             shape: FlintRectangle::from_centroid(centroid, width, height),
             rotation,
+        };
+
+        let body = Body {
+            live: shape,
+            past: shape,
             dirty: true,
             axes: Vec::new(),
         };
@@ -229,7 +252,7 @@ impl Spawner {
 
         let render = Renderable::<RenderRectangle>::new(
             color,
-            body.shape.into(),
+            body.live.shape.into(),
             rotation.y.to_num::<f32>().atan2(rotation.x.to_num()),
         );
 
