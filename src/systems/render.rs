@@ -230,12 +230,7 @@ impl RenderSystem {
             y: ren.height / 2.0,
         };
 
-        rrh.draw_rectangle_pro(
-            ren,
-            origin,
-            rec.lerp_rotation(delta).to_degrees(),
-            rec.color,
-        );
+        rrh.draw_rectangle_pro(ren, origin, rec.lerp_angle(delta).to_degrees(), rec.color);
     }
 
     fn draw_projectile_debug(
@@ -271,9 +266,22 @@ impl RenderSystem {
         rrh.draw_rectangle_pro(
             ren,
             origin,
-            projectile.render.live.rotation.to_degrees(),
+            projectile.render.live.angle.to_degrees(),
             Engine::DEBUG_TEXT_COLOR,
         );
+
+        let axes = &projectile.body.axes;
+        for i in 0..axes.len() {
+            let a = axes[i];
+            let b = axes[if i + 1 == axes.len() { 0 } else { i + 1 }];
+            rrh.draw_line(
+                a.x.to_num::<i32>(),
+                a.y.to_num::<i32>(),
+                b.x.to_num::<i32>(),
+                b.y.to_num::<i32>(),
+                crate::components::render::RenderColor::GREEN,
+            );
+        }
     }
 
     fn draw_triship_debug(
@@ -305,8 +313,8 @@ impl RenderSystem {
         rrh.draw_text(
             &format!(
                 "{} {}",
-                triship.render.live.rotation.to_degrees().round() + 180.0,
-                triship.render.live.rotation
+                triship.render.live.angle.to_degrees().round() + 180.0,
+                triship.render.live.angle
             ),
             x - len,
             y - len,

@@ -264,7 +264,7 @@ impl GameState {
                             // top left
                             Spawn {
                                 point: FlintVec2::new(Flint::from_num(100), Flint::from_num(100)),
-                                rotation: FlintVec2::rotation_west(),
+                                direction: FlintVec2::direction_west(),
                             },
                             // top right
                             Spawn {
@@ -272,7 +272,7 @@ impl GameState {
                                     width - Flint::from_num(100),
                                     Flint::from_num(100),
                                 ),
-                                rotation: FlintVec2::rotation_south(),
+                                direction: FlintVec2::direction_south(),
                             },
                             // bottom left
                             Spawn {
@@ -280,7 +280,7 @@ impl GameState {
                                     Flint::from_num(100),
                                     height - Flint::from_num(100),
                                 ),
-                                rotation: FlintVec2::rotation_east(),
+                                direction: FlintVec2::direction_east(),
                             },
                             // bottom right
                             Spawn {
@@ -288,7 +288,7 @@ impl GameState {
                                     width - Flint::from_num(100),
                                     height - Flint::from_num(100),
                                 ),
-                                rotation: FlintVec2::rotation_north(),
+                                direction: FlintVec2::direction_north(),
                             },
                         ],
                         width,

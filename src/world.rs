@@ -14,7 +14,7 @@ use crate::{
 
 pub struct Spawn {
     pub point: FlintVec2,
-    pub rotation: FlintVec2,
+    pub direction: FlintVec2,
 }
 
 pub struct Map {
@@ -73,7 +73,7 @@ impl World {
         // spawn players
         for pid in positions.iter().take(players) {
             let spawn = &map.spawns[*pid];
-            let player = self.spawner.spawn_triship(&spawn.point, &spawn.rotation);
+            let player = self.spawner.spawn_triship(spawn.point, spawn.direction);
             self.entities.players.push(player);
         }
 
@@ -85,7 +85,7 @@ impl World {
                 Flint::from_num(self.rng.i32((1 + width as i32)..(512 - width as i32))),
                 Flint::from_num(self.rng.i32((1 + height as i32)..(512 - height as i32))),
             );
-            let rotation = FlintVec2::rotation_north();
+            let rotation = FlintVec2::direction_north();
             let color = RenderColor::new(
                 self.rng.u8(180..255),
                 self.rng.u8(180..255),
@@ -94,7 +94,7 @@ impl World {
             );
 
             let star = self.spawner.spawn_star(
-                &centroid,
+                centroid,
                 rotation,
                 self.rng.u8(u8::MIN..u8::MAX),
                 self.rng.u8(0..15),
@@ -171,7 +171,7 @@ impl World {
         // if debug {
         if true {
             // draw some debug data
-            let text = format!("{} ents", self.entities.get_count());
+            let text = format!("{} ents", self.entities.count());
             rrh.draw_text(
                 &text,
                 Engine::WIDTH - raylib::text::measure_text(&text, 10) - 4,

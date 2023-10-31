@@ -12,7 +12,7 @@ pub struct Renderable<T> {
 #[derive(Clone, Copy)]
 pub struct RenderBody<T> {
     pub shape: T,
-    pub rotation: f32,
+    pub angle: f32,
 }
 
 // let's reuse what's in raylib
@@ -28,17 +28,17 @@ pub struct RenderTriangle {
 }
 
 impl<T> Renderable<T> {
-    pub fn lerp_rotation(&self, amount: f32) -> f32 {
-        raylib::math::lerp(self.past.rotation, self.live.rotation, amount)
+    pub fn lerp_angle(&self, amount: f32) -> f32 {
+        raylib::math::lerp(self.past.angle, self.live.angle, amount)
     }
 }
 
 impl Renderable<RenderVector2> {
-    pub fn new(color: RenderColor, shape: RenderVector2, rotation: f32) -> Self {
+    pub fn new(color: RenderColor, shape: RenderVector2, angle: f32) -> Self {
         Renderable {
             color,
-            live: RenderBody { shape, rotation },
-            past: RenderBody { shape, rotation },
+            live: RenderBody { shape, angle },
+            past: RenderBody { shape, angle },
         }
     }
 
@@ -58,20 +58,23 @@ impl From<FlintVec2> for RenderVector2 {
 
 impl From<&Body<FlintVec2>> for RenderBody<RenderVector2> {
     fn from(value: &Body<FlintVec2>) -> Self {
+        // transform the direction vector into radians
+        let angle = value
+            .live
+            .direction
+            .y
+            .to_num::<f32>()
+            .atan2(value.live.direction.x.to_num());
+
         Self {
             shape: value.live.shape.into(),
-            rotation: value
-                .live
-                .rotation
-                .y
-                .to_num::<f32>()
-                .atan2(value.live.rotation.x.to_num()),
+            angle,
         }
     }
 }
 
 impl RenderTriangle {
-    pub fn get_centroid(&self) -> Vector2 {
+    pub fn centroid(&self) -> Vector2 {
         Vector2 {
             x: (self.v1.x + self.v2.x + self.v3.x) / 3.0,
             y: (self.v1.y + self.v2.y + self.v3.y) / 3.0,
@@ -79,7 +82,7 @@ impl RenderTriangle {
     }
 
     fn rotate(&mut self, amount: f32) {
-        let cen = self.get_centroid();
+        let cen = self.centroid();
         let (sin, cos) = amount.sin_cos();
         let rot = |v: &mut Vector2| {
             let x = (cos * (v.x - cen.x)) - (sin * (v.y - cen.y)) + cen.x;
@@ -96,13 +99,13 @@ impl RenderTriangle {
 }
 
 impl Renderable<RenderTriangle> {
-    pub fn new(color: RenderColor, mut shape: RenderTriangle, rotation: f32) -> Self {
-        shape.rotate(rotation);
+    pub fn new(color: RenderColor, mut shape: RenderTriangle, angle: f32) -> Self {
+        shape.rotate(angle);
 
         Renderable {
             color,
-            live: RenderBody { shape, rotation },
-            past: RenderBody { shape, rotation },
+            live: RenderBody { shape, angle },
+            past: RenderBody { shape, angle },
         }
     }
 
@@ -121,8 +124,8 @@ impl Renderable<RenderTriangle> {
     pub fn lerp_centroid(&self, amount: f32) -> Vector2 {
         self.past
             .shape
-            .get_centroid()
-            .lerp(self.live.shape.get_centroid(), amount)
+            .centroid()
+            .lerp(self.live.shape.centroid(), amount)
     }
 
     pub fn lerp(&self, amount: f32) -> RenderTriangle {
@@ -155,27 +158,27 @@ impl From<FlintTriangle> for RenderTriangle {
 
 impl From<&Body<FlintTriangle>> for RenderBody<RenderTriangle> {
     fn from(value: &Body<FlintTriangle>) -> Self {
-        // transform the rotation vector into radians
-        let rotation = value
+        // transform the direction vector into radians
+        let angle = value
             .live
-            .rotation
+            .direction
             .y
             .to_num::<f32>()
-            .atan2(value.live.rotation.x.to_num());
+            .atan2(value.live.direction.x.to_num());
 
         let mut shape: RenderTriangle = value.live.shape.into();
-        shape.rotate(rotation);
+        shape.rotate(angle);
 
-        Self { shape, rotation }
+        Self { shape, angle }
     }
 }
 
 impl Renderable<RenderRectangle> {
-    pub fn new(color: RenderColor, shape: RenderRectangle, rotation: f32) -> Self {
+    pub fn new(color: RenderColor, shape: RenderRectangle, angle: f32) -> Self {
         Renderable {
             color,
-            live: RenderBody { shape, rotation },
-            past: RenderBody { shape, rotation },
+            live: RenderBody { shape, angle },
+            past: RenderBody { shape, angle },
         }
     }
 
@@ -202,16 +205,16 @@ impl From<FlintRectangle> for RenderRectangle {
 
 impl From<&Body<FlintRectangle>> for RenderBody<RenderRectangle> {
     fn from(value: &Body<FlintRectangle>) -> Self {
-        // transform the rotation vector into radians
-        let rotation = value
+        // transform the direction vector into radians
+        let angle = value
             .live
-            .rotation
+            .direction
             .y
             .to_num::<f32>()
-            .atan2(value.live.rotation.x.to_num());
+            .atan2(value.live.direction.x.to_num());
 
         let shape: RenderRectangle = value.live.shape.into();
 
-        Self { shape, rotation }
+        Self { shape, angle }
     }
 }

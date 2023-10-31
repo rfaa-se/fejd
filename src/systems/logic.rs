@@ -1,6 +1,7 @@
 use fastrand::Rng;
 
 use crate::{
+    collisions,
     components::{
         logic::{Body, Motion},
         render::RenderColor,
@@ -23,6 +24,10 @@ impl LogicSystem {
     }
 
     pub fn update(&self, map: &Map, entities: &mut Entities, spawner: &Spawner, rng: &mut Rng) {
+        // LOGIC
+        // remove dead entities
+        self.update_dead(entities);
+
         // RENDER
         // update render past bodies,
         // this is so we can interpolate between past and live bodies when drawing
@@ -31,15 +36,17 @@ impl LogicSystem {
         // LOGIC
         // update game logic
         self.update_body_past(entities);
-        self.update_collision_detection(entities, spawner, rng);
-        self.update_dead(entities);
+
         self.update_motion(map, entities);
         self.update_lifetime(entities);
         self.update_out_of_bounds(map, entities);
         self.update_counter_toggle(entities);
 
+        self.update_collision_detection(entities, spawner, rng);
+
         // RENDER
-        self.update_color_alpha(entities);
+        self.update_color(entities);
+        self.update_color(entities);
         // update render live bodies,
         // this is so we can interpolate between past and live bodies when drawing
         self.update_render_live(entities);
@@ -65,41 +72,42 @@ impl LogicSystem {
     ) {
         // TODO: fix quad or kd tree for collisions
 
-        // for projectile in entities.projectiles.iter_mut() {
-        //     for player in entities.players.iter_mut() {
-        //         if projectile.body.intersects(&player.body) {
-        //             player.life -= projectile.dmg;
-        //         }
-        //     }
-        // }
-
         // projectile - player
         for projectile in entities.projectiles.iter_mut() {
             for player in entities.players.iter_mut() {
-                // let point = match get_collision_point_rec_tri(
-                //     &projectile.body,
-                //     &projectile.motion,
-                //     &player.body,
-                // ) {
-                //     Some(point) => point,
-                //     None => continue,
-                // };
+                let shape_alpha = projectile.body.calc_axes(true);
+                let shape_beta = player.body.calc_axes();
 
-                let shape_alpha = projectile.body.get_axes(true);
-                let shape_beta = player.body.get_axes();
-
-                if !crate::collisions::intersects(shape_alpha, shape_beta) {
+                if !collisions::intersects(shape_alpha, shape_beta) {
                     continue;
                 }
 
                 projectile.dead = true;
                 player.life -= projectile.dmg;
 
-                // let's go with the projectile point for now
-                // TODO: projectile top?
-                let point = projectile.body.live.shape.point;
+                // if we have a collision we must calculate where we collide,
+                // since the projectile includes past and live body to detect
+                // a collision we will begin with the past body and move it
+                // until we find a collision
 
-                let explosion = spawner.spawn_explosion_particles(&point, 32, rng);
+                projectile.body.live = projectile.body.past;
+                projectile.body.dirty = true;
+                let rotation = projectile.body.live.direction;
+                let shape_alpha = projectile.body.calc_axes(false);
+                let speed = collisions::calculate_speed_to_collision(
+                    rotation,
+                    projectile.motion.speed,
+                    shape_alpha,
+                    shape_beta,
+                );
+
+                let velocity = rotation * speed;
+                projectile.body.live.shape.point += velocity;
+                projectile.body.dirty = true;
+                // projectile.body.calc_axes(true);
+
+                let explosion =
+                    spawner.spawn_explosion_particles(projectile.body.live.shape.point, 32, rng);
                 entities.particles.extend(explosion);
 
                 if player.life > 0 {
@@ -107,12 +115,12 @@ impl LogicSystem {
                 }
 
                 player.dead = true;
-                let explosion = spawner.spawn_explosion_particles(
-                    &player.body.live.shape.get_centroid(),
-                    128,
-                    rng,
-                );
-                entities.particles.extend(explosion);
+                // let explosion = spawner.spawn_explosion_particles(
+                //     &player.body.live.shape.get_centroid(),
+                //     128,
+                //     rng,
+                // );
+                //entities.particles.extend(explosion);
             }
         }
 
@@ -128,17 +136,18 @@ impl LogicSystem {
         // }
     }
 
-    fn update_color_alpha(&self, entities: &mut Entities) {
+    fn update_color(&self, entities: &mut Entities) {
         // particles
-        entities
-            .particles
-            .iter_mut()
-            .for_each(|x| apply_color_alpha_twinkle(&mut x.render.color, x.amount, false, true));
+        entities.particles.iter_mut().for_each(|x| {
+            apply_amount_incdec(&mut x.render.color.a, x.amount, false, true);
+            apply_amount_incdec(&mut x.render.color.g, x.amount, true, true);
+        });
 
         // stars
-        entities.stars.iter_mut().for_each(|x| {
-            apply_color_alpha_twinkle(&mut x.render.color, x.amount, x.toggle, false)
-        });
+        entities
+            .stars
+            .iter_mut()
+            .for_each(|x| apply_amount_incdec(&mut x.render.color.a, x.amount, x.toggle, false));
     }
 
     fn update_motion(&self, _map: &Map, entities: &mut Entities) {
@@ -227,7 +236,7 @@ impl LogicSystem {
 
     fn update_dead(&self, entities: &mut Entities) {
         // players
-        entities.players.retain(|x| !x.dead);
+        //entities.players.retain(|x| !x.dead);
 
         // projectiles
         entities.projectiles.retain(|x| !x.dead);
@@ -269,18 +278,18 @@ fn apply_counter_toggle(counter: &mut u8, toggle: &mut bool) {
     }
 }
 
-fn apply_color_alpha_twinkle(color: &mut RenderColor, amount: u8, add: bool, minmax: bool) {
+fn apply_amount_incdec(number: &mut u8, amount: u8, add: bool, minmax: bool) {
     if add {
-        if color.a <= u8::MAX - amount {
-            color.a += amount;
+        if *number <= u8::MAX - amount {
+            *number += amount;
         } else if minmax {
-            color.a = u8::MAX;
+            *number = u8::MAX;
         }
     } else {
-        if color.a >= amount {
-            color.a -= amount;
+        if *number >= amount {
+            *number -= amount;
         } else if minmax {
-            color.a = u8::MIN;
+            *number = u8::MIN;
         }
     }
 }
@@ -311,7 +320,7 @@ fn apply_deceleration(motion: &mut Motion, deceleration: &Flint) {
 }
 
 fn apply_velocity_triangle(body: &mut Body<FlintTriangle>, motion: &Motion) {
-    let velocity = body.live.rotation * motion.speed;
+    let velocity = body.live.direction * motion.speed;
 
     body.live.shape.v1 += velocity;
     body.live.shape.v2 += velocity;
@@ -319,13 +328,13 @@ fn apply_velocity_triangle(body: &mut Body<FlintTriangle>, motion: &Motion) {
 }
 
 fn apply_velocity_rectangle(body: &mut Body<FlintRectangle>, motion: &Motion) {
-    let velocity = body.live.rotation * motion.speed;
+    let velocity = body.live.direction * motion.speed;
 
     body.live.shape.point += velocity;
 }
 
 fn apply_velocity_vector2(body: &mut Body<FlintVec2>, motion: &Motion) {
-    let velocity = body.live.rotation * motion.speed;
+    let velocity = body.live.direction * motion.speed;
 
     body.live.shape += velocity;
 }

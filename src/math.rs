@@ -1,4 +1,4 @@
-use std::ops::{Add, AddAssign, Div, Mul, Sub};
+use std::ops::{Add, AddAssign, Div, Mul, Sub, SubAssign};
 
 use fixed::types::I20F12;
 
@@ -33,7 +33,7 @@ pub struct FlintRectangle {
 }
 
 impl FlintRectangle {
-    pub fn from_centroid(cen: &FlintVec2, width: Flint, height: Flint) -> Self {
+    pub fn from_centroid(cen: FlintVec2, width: Flint, height: Flint) -> Self {
         Self {
             point: FlintVec2::new(cen.x - width / 2, cen.y - height / 2),
             width,
@@ -41,7 +41,7 @@ impl FlintRectangle {
         }
     }
 
-    pub fn get_centroid(&self) -> FlintVec2 {
+    pub fn centroid(&self) -> FlintVec2 {
         FlintVec2 {
             x: self.point.x + self.width / 2,
             y: self.point.y + self.height / 2,
@@ -58,37 +58,37 @@ impl FlintVec2 {
         cordic::atan2(self.y, self.x)
     }
 
-    pub const fn rotation_north() -> FlintVec2 {
+    pub const fn direction_north() -> FlintVec2 {
         FlintVec2 {
             x: Flint::ZERO,
             y: Flint::NEG_ONE,
         }
     }
 
-    pub const fn rotation_east() -> FlintVec2 {
+    pub const fn direction_east() -> FlintVec2 {
         FlintVec2 {
             x: Flint::ONE,
             y: Flint::ZERO,
         }
     }
 
-    pub const fn rotation_south() -> FlintVec2 {
+    pub const fn direction_south() -> FlintVec2 {
         FlintVec2 {
             x: Flint::ZERO,
             y: Flint::ONE,
         }
     }
 
-    pub const fn rotation_west() -> FlintVec2 {
+    pub const fn direction_west() -> FlintVec2 {
         FlintVec2 {
             x: Flint::NEG_ONE,
             y: Flint::ZERO,
         }
     }
 
-    pub fn rotate(&self, rad: &Flint, around: &FlintVec2) -> FlintVec2 {
-        let cos = cordic::cos(*rad);
-        let sin = cordic::sin(*rad);
+    pub fn rotated(&self, rad: Flint, around: FlintVec2) -> FlintVec2 {
+        let cos = cordic::cos(rad);
+        let sin = cordic::sin(rad);
         let x = self.x - around.x;
         let y = self.y - around.y;
 
@@ -98,28 +98,28 @@ impl FlintVec2 {
         }
     }
 
-    pub fn rotate_180(&self) -> FlintVec2 {
+    pub fn rotated_180(&self) -> FlintVec2 {
         FlintVec2 {
             x: self.x * -1,
             y: self.y * -1,
         }
     }
 
-    pub fn rotate_90(&self) -> FlintVec2 {
+    pub fn rotated_90(&self) -> FlintVec2 {
         FlintVec2 {
             x: self.y,
             y: self.x * -1,
         }
     }
 
-    pub fn rotate_270(&self) -> FlintVec2 {
+    pub fn rotated_270(&self) -> FlintVec2 {
         FlintVec2 {
             x: self.y * -1,
             y: self.x,
         }
     }
 
-    pub fn normalize(&self) -> FlintVec2 {
+    pub fn normalized(&self) -> FlintVec2 {
         let mag = self.magnitude();
 
         if mag == Flint::ZERO {
@@ -152,7 +152,7 @@ impl FlintVec2 {
 }
 
 impl FlintTriangle {
-    pub fn from_centroid(cen: &FlintVec2, width: Flint, height: Flint) -> Self {
+    pub fn from_centroid(cen: FlintVec2, width: Flint, height: Flint) -> Self {
         //          up 90
         // left 0            right 180
         //         down 270
@@ -185,7 +185,7 @@ impl FlintTriangle {
         }
     }
 
-    pub fn get_centroid(&self) -> FlintVec2 {
+    pub fn centroid(&self) -> FlintVec2 {
         FlintVec2 {
             x: ((self.v1.x + self.v2.x + self.v3.x) / 3),
             y: ((self.v1.y + self.v2.y + self.v3.y) / 3),
@@ -230,6 +230,13 @@ impl AddAssign for FlintVec2 {
     fn add_assign(&mut self, rhs: Self) {
         self.x += rhs.x;
         self.y += rhs.y;
+    }
+}
+
+impl SubAssign for FlintVec2 {
+    fn sub_assign(&mut self, rhs: Self) {
+        self.x -= rhs.x;
+        self.y -= rhs.y;
     }
 }
 
