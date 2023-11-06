@@ -39,8 +39,8 @@ impl Spawner {
             speed: Flint::from_num(0),
             max_speed: Flint::from_num(8),
             acceleration: Flint::from_num(0.2),
-            // rotation_speed: Flint::from_num(0.18),
-            rotation_speed: Flint::from_num(0.02),
+            rotation_speed: Flint::from_num(0.18),
+            // rotation_speed: Flint::from_num(0.02),
         };
 
         Triship {
@@ -56,7 +56,7 @@ impl Spawner {
         &self,
         centroid: FlintVec2,
         direction: FlintVec2,
-        render_centroid: RenderVector2,
+        // render_centroid: RenderVector2,
         relative_speed: Flint,
         pid: usize,
     ) -> Projectile {
@@ -73,9 +73,11 @@ impl Spawner {
             axes: Vec::new(),
         };
 
-        let mut rec: RenderRectangle = body.live.shape.into();
-        rec.x = render_centroid.x;
-        rec.y = render_centroid.y;
+        let rec: RenderRectangle = body.live.shape.into();
+        // not needed?
+        // let mut rec: RenderRectangle = body.live.shape.into();
+        // rec.x = render_centroid.x;
+        // rec.y = render_centroid.y;
 
         let render = Renderable::<RenderRectangle>::new(
             RenderColor::LIGHTYELLOW,
@@ -262,8 +264,8 @@ impl Spawner {
             // let lifetime = rng.i32(6..18);
             let color = RenderColor::new(
                 rng.u8(240..=255),
-                rng.u8(0..32),
-                rng.u8(0..32),
+                rng.u8(0..8),
+                rng.u8(0..8),
                 rng.u8(240..=255),
             );
             let amount = rng.u8(24..56);

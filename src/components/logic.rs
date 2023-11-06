@@ -25,17 +25,20 @@ impl Body<FlintRectangle> {
         if self.dirty {
             self.axes.clear();
 
-            let (sin, cos) =
-                cordic::sin_cos(cordic::atan2(self.live.direction.y, self.live.direction.x));
-            let cx = self.live.shape.point.x + self.live.shape.width / 2;
-            let cy = self.live.shape.point.y + self.live.shape.height / 2;
-
-            let dx = self.live.shape.point.x - cx;
-            let dy = self.live.shape.point.y - cy;
+            let (sin, cos) = self.live.direction.sin_cos();
+            let ox = self.live.shape.width / 2;
+            let oy = self.live.shape.height / 2;
+            let dx = -ox;
+            let dy = -oy;
+            let w = self.live.shape.width;
+            let h = self.live.shape.height;
+            let x = self.live.shape.point.x + ox;
+            let y = self.live.shape.point.y + oy;
 
             if include_past_body {
                 // we want to create 4 points, the 2 starting points should be the "end" of the past body,
-                // and the 2 remaining points should be the end of the live body
+                // and the 2 remaining points should be the end of the live body,
+                // this is so we can collision check the entire path the rectangle has moved
                 //   end ->  ._.  <- end
                 //           |_|  <- live body
                 //           . .
@@ -43,74 +46,63 @@ impl Body<FlintRectangle> {
                 //           . .
                 // start ->  ._.  <- start
                 //           |_|  <- past body
-                let (psin, pcos) =
-                    cordic::sin_cos(cordic::atan2(self.past.direction.y, self.past.direction.x));
-                let pcx = self.past.shape.point.x + self.past.shape.width / 2;
-                let pcy = self.past.shape.point.y + self.past.shape.height / 2;
-                let pdx = self.past.shape.point.x - pcx;
-                let pdy = self.past.shape.point.y - pcy;
+
+                let (psin, pcos) = self.past.direction.sin_cos();
+                let pox = self.past.shape.width / 2;
+                let poy = self.past.shape.height / 2;
+                let pdx = -pox;
+                let pdy = -poy;
+                let pw = self.past.shape.width;
+                let ph = self.past.shape.height;
+                let px = self.past.shape.point.x + pox;
+                let py = self.past.shape.point.y + poy;
 
                 // top left
                 self.axes.push(FlintVec2 {
-                    x: pdx * pcos - pdy * psin + pcx,
-                    y: pdx * psin + pdy * pcos + pcy,
+                    x: px + (pdx + pw) * pcos - pdy * psin,
+                    y: py + (pdx + pw) * psin + pdy * pcos,
                 });
-
-                let pdx = self.past.shape.point.x + self.past.shape.width - pcx;
 
                 // top right
                 self.axes.push(FlintVec2 {
-                    x: pdx * pcos - pdy * psin + pcx,
-                    y: pdx * psin + pdy * pcos + pcy,
+                    x: x + (dx + w) * cos - dy * sin,
+                    y: y + (dx + w) * sin + dy * cos,
                 });
-
-                let dy = self.live.shape.point.y + self.live.shape.height - cy;
-
-                // bottom left
-                self.axes.push(FlintVec2 {
-                    x: dx * cos - dy * sin + cx,
-                    y: dx * sin + dy * cos + cy,
-                });
-
-                let dx = self.live.shape.point.x + self.live.shape.width - cx;
 
                 // bottom right
                 self.axes.push(FlintVec2 {
-                    x: dx * cos - dy * sin + cx,
-                    y: dx * sin + dy * cos + cy,
+                    x: x + (dx + w) * cos - (dy + h) * sin,
+                    y: y + (dx + w) * sin + (dy + h) * cos,
                 });
 
-                // self.axes.swap(0, 3);
-                // self.axes.swap(2, 1);
+                // bottom left
+                self.axes.push(FlintVec2 {
+                    x: px + (pdx + pw) * pcos - (pdy + ph) * psin,
+                    y: py + (pdx + pw) * psin + (pdy + ph) * pcos,
+                });
             } else {
                 // top left
                 self.axes.push(FlintVec2 {
-                    x: dx * cos - dy * sin + cx,
-                    y: dx * sin + dy * cos + cy,
+                    x: x + dx * cos - dy * sin,
+                    y: y + dx * sin + dy * cos,
                 });
-
-                let dx = self.live.shape.point.x + self.live.shape.width - cx;
 
                 // top right
                 self.axes.push(FlintVec2 {
-                    x: dx * cos - dy * sin + cx,
-                    y: dx * sin + dy * cos + cy,
+                    x: x + (dx + w) * cos - dy * sin,
+                    y: y + (dx + w) * sin + dy * cos,
                 });
-
-                let dy = self.live.shape.point.y + self.live.shape.height - cy;
 
                 // bottom right
                 self.axes.push(FlintVec2 {
-                    x: dx * cos - dy * sin + cx,
-                    y: dx * sin + dy * cos + cy,
+                    x: x + (dx + w) * cos - (dy + h) * sin,
+                    y: y + (dx + w) * sin + (dy + h) * cos,
                 });
-
-                let dx = self.live.shape.point.x - cx;
 
                 // bottom left
                 self.axes.push(FlintVec2 {
-                    x: dx * cos - dy * sin + cx,
-                    y: dx * sin + dy * cos + cy,
+                    x: x + dx * cos - (dy + h) * sin,
+                    y: y + dx * sin + (dy + h) * cos,
                 });
             }
 

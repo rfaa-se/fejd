@@ -1,7 +1,7 @@
 use raylib::prelude::{Camera2D, RaylibDraw, RaylibMode2D};
 
 use crate::{
-    components::render::{RenderRectangle, RenderTriangle, RenderVector2, Renderable},
+    components::render::{RenderColor, RenderRectangle, RenderTriangle, RenderVector2, Renderable},
     engine::Engine,
     entities::{Entities, Particle, Projectile, Triship},
     misc::RaylibRenderHandle,
@@ -37,7 +37,12 @@ impl RenderSystem {
             .for_each(|x| self.draw_rectangle(rrh, map, cam, &x.render, delta));
 
         entities
-            .particles
+            .exhausts
+            .iter()
+            .for_each(|x| self.draw_vector2(rrh, map, cam, &x.render, delta));
+
+        entities
+            .explosions
             .iter()
             .for_each(|x| self.draw_vector2(rrh, map, cam, &x.render, delta));
 
@@ -56,7 +61,12 @@ impl RenderSystem {
             .for_each(|x| self.draw_projectile_debug(rrh, map, cam, &x, delta));
 
         entities
-            .particles
+            .exhausts
+            .iter()
+            .for_each(|x| self.draw_particle_debug(rrh, map, cam, &x, delta));
+
+        entities
+            .explosions
             .iter()
             .for_each(|x| self.draw_particle_debug(rrh, map, cam, &x, delta));
     }
@@ -210,25 +220,28 @@ impl RenderSystem {
             return;
         }
 
-        let w = if ren.width < 2.0 {
-            ren.width
-        } else {
-            ren.width / 2.0
-        };
+        // let w = if ren.width < 2.0 {
+        //     ren.width
+        // } else {
+        //     ren.width / 2.0
+        // };
 
-        let h = if ren.height < 2.0 {
-            ren.height
-        } else {
-            ren.height / 2.0
-        };
+        // let h = if ren.height < 2.0 {
+        //     ren.height
+        // } else {
+        //     ren.height / 2.0
+        // };
 
-        ren.x += w;
-        ren.y += h;
+        // ren.x += w;
+        // ren.y += h;
 
         let origin = RenderVector2 {
             x: ren.width / 2.0,
             y: ren.height / 2.0,
         };
+
+        ren.x += origin.x;
+        ren.y += origin.y;
 
         rrh.draw_rectangle_pro(ren, origin, rec.lerp_angle(delta).to_degrees(), rec.color);
     }
@@ -243,45 +256,57 @@ impl RenderSystem {
     ) {
         let mut ren = projectile.render.live.shape;
 
-        let w = if ren.width < 2.0 {
-            ren.width
-        } else {
-            ren.width / 2.0
-        };
+        // let w = if ren.width < 2.0 {
+        //     ren.width
+        // } else {
+        //     ren.width / 2.0
+        // };
 
-        let h = if ren.height < 2.0 {
-            ren.height
-        } else {
-            ren.height / 2.0
-        };
+        // let h = if ren.height < 2.0 {
+        //     ren.height
+        // } else {
+        //     ren.height / 2.0
+        // };
 
-        ren.x += w;
-        ren.y += h;
-
+        // ren.x += w;
+        // ren.y += h;
         let origin = RenderVector2 {
             x: ren.width / 2.0,
             y: ren.height / 2.0,
         };
 
-        rrh.draw_rectangle_pro(
-            ren,
-            origin,
-            projectile.render.live.angle.to_degrees(),
-            Engine::DEBUG_TEXT_COLOR,
-        );
+        ren.x += origin.x;
+        ren.y += origin.y;
 
         let axes = &projectile.body.axes;
         for i in 0..axes.len() {
             let a = axes[i];
             let b = axes[if i + 1 == axes.len() { 0 } else { i + 1 }];
-            rrh.draw_line(
-                a.x.to_num::<i32>(),
-                a.y.to_num::<i32>(),
-                b.x.to_num::<i32>(),
-                b.y.to_num::<i32>(),
-                crate::components::render::RenderColor::GREEN,
-            );
+            let c = match i {
+                0 => RenderColor::BLUE,
+                1 => RenderColor::GREEN,
+                2 => RenderColor::RED,
+                _ => RenderColor::ORANGE,
+            };
+
+            let v1 = Into::<RenderVector2>::into(a);
+            let v2 = Into::<RenderVector2>::into(b);
+
+            rrh.draw_line_v(v1, v2, c);
         }
+
+        // println!("{:?} {:?} {:?} {:?}", axes[0], axes[1], axes[2], axes[3]);
+        // println!("{:?}", ren);
+
+        // let mut c = Engine::DEBUG_TEXT_COLOR;
+        // c.a = 80;
+
+        // rrh.draw_rectangle_pro(
+        //     ren,
+        //     origin,
+        //     projectile.render.live.angle.to_degrees(),
+        //     c, // Engine::DEBUG_TEXT_COLOR,
+        // );
     }
 
     fn draw_triship_debug(
@@ -313,7 +338,7 @@ impl RenderSystem {
         rrh.draw_text(
             &format!(
                 "{} {}",
-                triship.render.live.angle.to_degrees().round() + 180.0,
+                triship.render.live.angle.round() + 180.0,
                 triship.render.live.angle
             ),
             x - len,

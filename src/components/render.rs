@@ -58,17 +58,9 @@ impl From<FlintVec2> for RenderVector2 {
 
 impl From<&Body<FlintVec2>> for RenderBody<RenderVector2> {
     fn from(value: &Body<FlintVec2>) -> Self {
-        // transform the direction vector into radians
-        let angle = value
-            .live
-            .direction
-            .y
-            .to_num::<f32>()
-            .atan2(value.live.direction.x.to_num());
-
         Self {
             shape: value.live.shape.into(),
-            angle,
+            angle: value.live.direction.radians().to_num::<f32>(),
         }
     }
 }
@@ -141,16 +133,16 @@ impl From<FlintTriangle> for RenderTriangle {
     fn from(value: FlintTriangle) -> Self {
         Self {
             v1: Vector2 {
-                x: value.v1.x.to_num::<f32>(),
-                y: value.v1.y.to_num::<f32>(),
+                x: value.v1.x.to_num(),
+                y: value.v1.y.to_num(),
             },
             v2: Vector2 {
-                x: value.v2.x.to_num::<f32>(),
-                y: value.v2.y.to_num::<f32>(),
+                x: value.v2.x.to_num(),
+                y: value.v2.y.to_num(),
             },
             v3: Vector2 {
-                x: value.v3.x.to_num::<f32>(),
-                y: value.v3.y.to_num::<f32>(),
+                x: value.v3.x.to_num(),
+                y: value.v3.y.to_num(),
             },
         }
     }
@@ -158,14 +150,7 @@ impl From<FlintTriangle> for RenderTriangle {
 
 impl From<&Body<FlintTriangle>> for RenderBody<RenderTriangle> {
     fn from(value: &Body<FlintTriangle>) -> Self {
-        // transform the direction vector into radians
-        let angle = value
-            .live
-            .direction
-            .y
-            .to_num::<f32>()
-            .atan2(value.live.direction.x.to_num());
-
+        let angle = value.live.direction.radians().to_num();
         let mut shape: RenderTriangle = value.live.shape.into();
         shape.rotate(angle);
 
@@ -195,24 +180,17 @@ impl Renderable<RenderRectangle> {
 impl From<FlintRectangle> for RenderRectangle {
     fn from(value: FlintRectangle) -> Self {
         Self {
-            x: value.point.x.to_num::<f32>(),
-            y: value.point.y.to_num::<f32>(),
-            width: value.width.to_num::<f32>(),
-            height: value.height.to_num::<f32>(),
+            x: value.point.x.to_num(),
+            y: value.point.y.to_num(),
+            width: value.width.to_num(),
+            height: value.height.to_num(),
         }
     }
 }
 
 impl From<&Body<FlintRectangle>> for RenderBody<RenderRectangle> {
     fn from(value: &Body<FlintRectangle>) -> Self {
-        // transform the direction vector into radians
-        let angle = value
-            .live
-            .direction
-            .y
-            .to_num::<f32>()
-            .atan2(value.live.direction.x.to_num());
-
+        let angle = value.live.direction.radians().to_num::<f32>();
         let shape: RenderRectangle = value.live.shape.into();
 
         Self { shape, angle }

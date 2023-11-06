@@ -26,12 +26,12 @@ pub struct Managers {
 impl Engine {
     pub const DEBUG_TEXT_COLOR: Color = Color::WHITESMOKE;
 
-    pub const WIDTH: i32 = 1280;
-    pub const HEIGHT: i32 = 720;
+    // pub const WIDTH: i32 = 1280;
+    // pub const HEIGHT: i32 = 720;
     // pub const WIDTH: i32 = 960;
     // pub const HEIGHT: i32 = 540;
-    // pub const WIDTH: i32 = 640;
-    // pub const HEIGHT: i32 = 360;
+    pub const WIDTH: i32 = 640;
+    pub const HEIGHT: i32 = 360;
 
     pub fn new() -> Self {
         Engine {
@@ -57,6 +57,9 @@ impl Engine {
                 panic!("Could not create render texture: {}", e);
             }
         };
+
+        // smooths things out
+        // rrt.set_texture_filter(rt, TextureFilter::TEXTURE_FILTER_BILINEAR);
 
         // initialize everything before we start
         self.init();

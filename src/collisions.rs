@@ -59,7 +59,6 @@ pub fn intersects(shape_alpha: &[FlintVec2], shape_beta: &[FlintVec2]) -> bool {
         let p2 = project(shape_beta, axis);
 
         if !is_overlapping(p1, p2) {
-            // return (false, Flint::ZERO);
             return false;
         }
     }
@@ -69,18 +68,23 @@ pub fn intersects(shape_alpha: &[FlintVec2], shape_beta: &[FlintVec2]) -> bool {
 
 pub fn calculate_speed_to_collision(
     direction: FlintVec2,
-    speed: Flint,
+    // speed: Flint,
     shape_alpha: &[FlintVec2],
     shape_beta: &[FlintVec2],
 ) -> Flint {
     let mut alpha = vec![FlintVec2::new(Flint::ZERO, Flint::ZERO); shape_alpha.len()];
     alpha.copy_from_slice(shape_alpha);
 
-    let threshold = Flint::from_num(0.2);
+    // let threshold = Flint::from_num(0.2);
     let mut total = Flint::ZERO;
-    let mut speed = speed / 2;
+    // halving speed is probably faster but there's a risk
+    // of entirely missing the intersection, let's move
+    // with a speed of one instead
+    // let mut speed = speed / 2;
+    let speed = Flint::ONE;
 
-    while speed > threshold {
+    // while speed > threshold {
+    loop {
         let velocity = direction * speed;
 
         // apply velocity to alpha
@@ -90,14 +94,16 @@ pub fn calculate_speed_to_collision(
 
         if intersects(&alpha, shape_beta) {
             // move back
-            for a in alpha.iter_mut() {
-                *a -= velocity;
-            }
+            // for a in alpha.iter_mut() {
+            //     *a -= velocity;
+            // }
+
+            break;
         } else {
             total += speed;
         }
 
-        speed /= 2;
+        // speed /= 2;
     }
 
     total

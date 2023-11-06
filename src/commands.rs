@@ -111,7 +111,7 @@ impl Command {
                     rng,
                 );
 
-                entities.particles.extend(particles);
+                entities.exhausts.extend(particles);
             }
             Command::Decelerate => {
                 p.motion.speed -= p.motion.acceleration / 2;
@@ -139,18 +139,18 @@ impl Command {
 
                 // to make the initial rendering look correct we also need to adjust
                 // where we put the render centroid
-                let render_distance = distance.to_num::<f32>();
-                let mut render_centroid = p.render.live.shape.v2;
-                let (sin, cos) = p.render.live.angle.sin_cos();
-                // TODO: look into why this seems to work, why 0.4? wat
-                render_centroid.x += render_distance * (cos - 0.4);
-                render_centroid.y += render_distance * (sin - 0.4);
+                // let render_distance = distance.to_num::<f32>();
+                // let mut render_centroid = p.render.live.shape.v2;
+                // let (sin, cos) = p.render.live.angle.sin_cos();
+                // // TODO: look into why this seems to work, why 0.4? wat
+                // render_centroid.x += render_distance * (cos - 0.4);
+                // render_centroid.y += render_distance * (sin - 0.4);
 
                 let projectile = spawner.spawn_projectile(
                     centroid,
                     p.body.live.direction.clone(),
-                    render_centroid,
-                    p.motion.speed,
+                    // render_centroid,
+                    p.motion.speed + p.motion.acceleration,
                     pid,
                 );
 
@@ -162,14 +162,14 @@ impl Command {
                     16,
                     rng,
                 );
-                entities.particles.extend(explosion);
+                entities.explosions.extend(explosion);
 
                 let explosion = spawner.spawn_explosion_particles(
                     FlintVec2::new(Flint::from_num(500), Flint::from_num(300)),
                     128,
                     rng,
                 );
-                entities.particles.extend(explosion);
+                entities.explosions.extend(explosion);
             }
         }
     }

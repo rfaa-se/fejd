@@ -58,6 +58,10 @@ impl FlintVec2 {
         cordic::atan2(self.y, self.x)
     }
 
+    pub fn sin_cos(&self) -> (Flint, Flint) {
+        cordic::sin_cos(self.radians())
+    }
+
     pub const fn direction_north() -> FlintVec2 {
         FlintVec2 {
             x: Flint::ZERO,

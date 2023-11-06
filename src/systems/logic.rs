@@ -4,7 +4,7 @@ use crate::{
     collisions,
     components::{
         logic::{Body, Motion},
-        render::RenderColor,
+        render::RenderVector2,
     },
     entities::Entities,
     math::{Flint, FlintRectangle, FlintTriangle, FlintVec2},
@@ -46,10 +46,41 @@ impl LogicSystem {
 
         // RENDER
         self.update_color(entities);
-        self.update_color(entities);
+        // self.update_color(entities);
         // update render live bodies,
         // this is so we can interpolate between past and live bodies when drawing
         self.update_render_live(entities);
+
+        for p in entities.projectiles.iter() {
+            println!(
+                "{:?} {:?} {:?} {:?} {:?}",
+                p.body.axes[0],
+                p.body.axes[1],
+                p.body.axes[2],
+                p.body.axes[3],
+                p.body.live.direction.radians()
+            );
+            println!("{:?} {:?}", p.render.live.shape, p.render.live.angle);
+            let (sin, cos) = p.render.live.angle.sin_cos();
+            let ox = p.render.live.shape.width / 2.0;
+            let oy = p.render.live.shape.height / 2.0;
+            let dx = -ox;
+            let dy = -oy;
+            let x = p.render.live.shape.x + ox;
+            let y = p.render.live.shape.y + oy;
+            let w = p.render.live.shape.width;
+            let h = p.render.live.shape.height;
+            let p0 = RenderVector2::new(x + dx * cos - dy * sin, y + dx * sin + dy * cos);
+            let p1 =
+                RenderVector2::new(x + (dx + w) * cos - dy * sin, y + (dx + w) * sin + dy * cos);
+            let p2 =
+                RenderVector2::new(x + dx * cos - (dy + h) * sin, y + dx * sin + (dy + h) * cos);
+            let p3 = RenderVector2::new(
+                x + (dx + w) * cos - (dy + h) * sin,
+                y + (dx + w) * sin + (dy + h) * cos,
+            );
+            println!("{:?} {:?} {:?} {:?}", p0, p1, p2, p3);
+        }
     }
 
     fn update_body_past(&self, entities: &mut Entities) {
@@ -74,7 +105,12 @@ impl LogicSystem {
 
         // projectile - player
         for projectile in entities.projectiles.iter_mut() {
-            for player in entities.players.iter_mut() {
+            for (pid, player) in entities.players.iter_mut().enumerate() {
+                // let's not shoot ourselves...
+                if projectile.pid == pid {
+                    continue;
+                }
+
                 let shape_alpha = projectile.body.calc_axes(true);
                 let shape_beta = player.body.calc_axes();
 
@@ -88,15 +124,16 @@ impl LogicSystem {
                 // if we have a collision we must calculate where we collide,
                 // since the projectile includes past and live body to detect
                 // a collision we will begin with the past body and move it
-                // until we find a collision
+                // until we find the collision
 
                 projectile.body.live = projectile.body.past;
                 projectile.body.dirty = true;
+
                 let rotation = projectile.body.live.direction;
                 let shape_alpha = projectile.body.calc_axes(false);
                 let speed = collisions::calculate_speed_to_collision(
                     rotation,
-                    projectile.motion.speed,
+                    // projectile.motion.speed,
                     shape_alpha,
                     shape_beta,
                 );
@@ -104,11 +141,11 @@ impl LogicSystem {
                 let velocity = rotation * speed;
                 projectile.body.live.shape.point += velocity;
                 projectile.body.dirty = true;
-                // projectile.body.calc_axes(true);
+                projectile.body.calc_axes(false);
 
                 let explosion =
                     spawner.spawn_explosion_particles(projectile.body.live.shape.point, 32, rng);
-                entities.particles.extend(explosion);
+                entities.explosions.extend(explosion);
 
                 if player.life > 0 {
                     continue;
@@ -120,7 +157,7 @@ impl LogicSystem {
                 //     128,
                 //     rng,
                 // );
-                //entities.particles.extend(explosion);
+                //entities.explosions.extend(explosion);
             }
         }
 
@@ -137,8 +174,14 @@ impl LogicSystem {
     }
 
     fn update_color(&self, entities: &mut Entities) {
-        // particles
-        entities.particles.iter_mut().for_each(|x| {
+        // particles - exhausts
+        entities.exhausts.iter_mut().for_each(|x| {
+            apply_amount_incdec(&mut x.render.color.a, x.amount, false, true);
+            apply_amount_incdec(&mut x.render.color.g, x.amount, true, true);
+        });
+
+        // particles - explosions
+        entities.explosions.iter_mut().for_each(|x| {
             apply_amount_incdec(&mut x.render.color.a, x.amount, false, true);
             apply_amount_incdec(&mut x.render.color.g, x.amount, true, true);
         });
@@ -156,7 +199,9 @@ impl LogicSystem {
             apply_velocity_triangle(&mut x.body, &x.motion);
             apply_deceleration(&mut x.motion, &self.deceleration);
 
+            // TODO: only recalculate if we have actually moved
             x.body.dirty = true; //x.motion.speed != Flint::ZERO;
+                                 // x.body.calc_axes();
         });
 
         // projectiles
@@ -164,11 +209,20 @@ impl LogicSystem {
             apply_velocity_rectangle(&mut x.body, &x.motion);
             // no deceleration on projectiles
 
-            x.body.dirty = true; //x.motion.speed != Flint::ZERO;
+            let has_moved_x = x.body.past.shape.point.x != x.body.live.shape.point.x;
+            let has_moved_y = x.body.past.shape.point.y != x.body.live.shape.point.y;
+
+            x.body.dirty = has_moved_x || has_moved_y;
         });
 
-        // particles
-        entities.particles.iter_mut().for_each(|x| {
+        // particles - exhausts
+        entities.exhausts.iter_mut().for_each(|x| {
+            apply_velocity_vector2(&mut x.body, &x.motion);
+            // no deceleration on particles
+        });
+
+        // particles - explosions
+        entities.explosions.iter_mut().for_each(|x| {
             apply_velocity_vector2(&mut x.body, &x.motion);
             // no deceleration on particles
         });
@@ -189,7 +243,13 @@ impl LogicSystem {
 
         // particles
         entities
-            .particles
+            .exhausts
+            .iter_mut()
+            .for_each(|x| x.render.past = x.render.live);
+
+        // particles - explosions
+        entities
+            .explosions
             .iter_mut()
             .for_each(|x| x.render.past = x.render.live);
 
@@ -213,9 +273,15 @@ impl LogicSystem {
             .iter_mut()
             .for_each(|x| x.render.live = (&x.body).into());
 
-        // particles
+        // particles - exhausts
         entities
-            .particles
+            .exhausts
+            .iter_mut()
+            .for_each(|x| x.render.live = (&x.body).into());
+
+        // particles - explosions
+        entities
+            .explosions
             .iter_mut()
             .for_each(|x| x.render.live = (&x.body).into());
 
@@ -241,14 +307,23 @@ impl LogicSystem {
         // projectiles
         entities.projectiles.retain(|x| !x.dead);
 
-        // particles
-        entities.particles.retain(|x| !x.dead);
+        // particles - exhausts
+        entities.exhausts.retain(|x| !x.dead);
+
+        // particles - explosions
+        entities.explosions.retain(|x| !x.dead);
     }
 
     fn update_lifetime(&self, entities: &mut Entities) {
-        // particles
+        // particles - exhausts
         entities
-            .particles
+            .exhausts
+            .iter_mut()
+            .for_each(|x| apply_lifetime_decrease(&mut x.lifetime, &mut x.dead));
+
+        // particles - explosions
+        entities
+            .explosions
             .iter_mut()
             .for_each(|x| apply_lifetime_decrease(&mut x.lifetime, &mut x.dead));
     }
