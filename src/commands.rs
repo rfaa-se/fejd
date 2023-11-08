@@ -28,20 +28,18 @@ impl Command {
         match self {
             Command::Nop => (),
             Command::RotateLeft => {
-                let rad = cordic::atan2(p.body.live.direction.y, p.body.live.direction.x)
-                    - p.motion.rotation_speed;
+                let rad = p.body.live.direction.radians() - p.motion.rotation_speed;
+                let (sin, cos) = cordic::sin_cos(rad);
 
-                p.body.live.direction.x = cordic::cos(rad);
-                p.body.live.direction.y = cordic::sin(rad);
-                p.body.dirty = true;
+                p.body.live.direction.x = cos;
+                p.body.live.direction.y = sin;
             }
             Command::RotateRight => {
-                let rad = cordic::atan2(p.body.live.direction.y, p.body.live.direction.x)
-                    + p.motion.rotation_speed;
+                let rad = p.body.live.direction.radians() + p.motion.rotation_speed;
+                let (sin, cos) = cordic::sin_cos(rad);
 
-                p.body.live.direction.x = cordic::cos(rad);
-                p.body.live.direction.y = cordic::sin(rad);
-                p.body.dirty = true;
+                p.body.live.direction.x = cos;
+                p.body.live.direction.y = sin;
             }
             Command::Accelerate => {
                 p.motion.speed += p.motion.acceleration;
@@ -50,7 +48,7 @@ impl Command {
                     p.motion.speed = p.motion.max_speed;
                 }
 
-                // spawn thrust particles
+                // spawn exhaust particles
 
                 // get the unrotated "bottom middle"
                 // TODO: + one unit below to not make the particles spawn inside the ship
@@ -102,7 +100,7 @@ impl Command {
 
                 let speed = Flint::from_num(0.12);
 
-                let particles = spawner.spawn_thruster_particles(
+                let particles = spawner.spawn_exhaust_particles(
                     centroid,
                     render_centroid,
                     rotation,
@@ -148,7 +146,7 @@ impl Command {
 
                 let projectile = spawner.spawn_projectile(
                     centroid,
-                    p.body.live.direction.clone(),
+                    p.body.live.direction,
                     // render_centroid,
                     p.motion.speed + p.motion.acceleration,
                     pid,

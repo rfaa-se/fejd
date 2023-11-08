@@ -1,5 +1,14 @@
 use crate::math::{Flint, FlintRectangle, FlintTriangle, FlintVec2};
 
+pub struct Miscellaneous {
+    pub player_death_counters: Vec<(usize, Counter)>,
+    pub player_map_spawn_indexes: Vec<usize>,
+}
+
+pub struct Counter {
+    pub value: i32,
+}
+
 pub struct Body<T> {
     pub live: Shape<T>,
     pub past: Shape<T>,
@@ -20,7 +29,34 @@ pub struct Motion {
     pub rotation_speed: Flint,
 }
 
+impl Miscellaneous {
+    pub fn new() -> Self {
+        Self {
+            player_death_counters: Vec::new(),
+            player_map_spawn_indexes: Vec::new(),
+        }
+    }
+
+    pub fn clear(&mut self) {
+        self.player_death_counters.clear();
+        self.player_map_spawn_indexes.clear();
+    }
+}
+
 impl Body<FlintRectangle> {
+    pub fn new(shape: Shape<FlintRectangle>) -> Self {
+        let mut body = Self {
+            live: shape,
+            past: shape,
+            dirty: true,
+            axes: Vec::new(),
+        };
+
+        body.calc_axes(false);
+
+        body
+    }
+
     pub fn calc_axes(&mut self, include_past_body: bool) -> &Vec<FlintVec2> {
         if self.dirty {
             self.axes.clear();
@@ -114,6 +150,19 @@ impl Body<FlintRectangle> {
 }
 
 impl Body<FlintTriangle> {
+    pub fn new(shape: Shape<FlintTriangle>) -> Self {
+        let mut body = Self {
+            live: shape,
+            past: shape,
+            dirty: true,
+            axes: Vec::new(),
+        };
+
+        body.calc_axes();
+
+        body
+    }
+
     pub fn calc_axes(&mut self) -> &Vec<FlintVec2> {
         if self.dirty {
             self.axes.clear();

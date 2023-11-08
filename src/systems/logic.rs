@@ -2,10 +2,8 @@ use fastrand::Rng;
 
 use crate::{
     collisions,
-    components::{
-        logic::{Body, Motion},
-        render::RenderVector2,
-    },
+    commands::Command,
+    components::logic::{Body, Counter, Miscellaneous, Motion},
     entities::Entities,
     math::{Flint, FlintRectangle, FlintTriangle, FlintVec2},
     spawner::Spawner,
@@ -23,9 +21,20 @@ impl LogicSystem {
         }
     }
 
-    pub fn update(&self, map: &Map, entities: &mut Entities, spawner: &Spawner, rng: &mut Rng) {
+    pub fn update(
+        &self,
+        map: &Map,
+        spawner: &Spawner,
+        entities: &mut Entities,
+        rng: &mut Rng,
+        misc: &mut Miscellaneous,
+        cmds: &[Vec<Command>],
+    ) {
+        // -----------
+        // --- PRE ---
+        // -----------
+
         // LOGIC
-        // remove dead entities
         self.update_dead(entities);
 
         // RENDER
@@ -33,54 +42,29 @@ impl LogicSystem {
         // this is so we can interpolate between past and live bodies when drawing
         self.update_render_past(entities);
 
-        // LOGIC
-        // update game logic
-        self.update_body_past(entities);
+        // ------------
+        // --- PERI ---
+        // ------------
 
+        // LOGIC
+        self.update_respawn(entities, map, spawner, misc);
+        self.update_body_past(entities);
+        self.update_commands(entities, spawner, rng, cmds);
         self.update_motion(map, entities);
         self.update_lifetime(entities);
         self.update_out_of_bounds(map, entities);
         self.update_counter_toggle(entities);
+        self.update_collision_detection(entities, spawner, rng, misc);
+        self.update_color(entities);
 
-        self.update_collision_detection(entities, spawner, rng);
+        // ------------
+        // --- POST ---
+        // ------------
 
         // RENDER
-        self.update_color(entities);
-        // self.update_color(entities);
         // update render live bodies,
         // this is so we can interpolate between past and live bodies when drawing
         self.update_render_live(entities);
-
-        for p in entities.projectiles.iter() {
-            println!(
-                "{:?} {:?} {:?} {:?} {:?}",
-                p.body.axes[0],
-                p.body.axes[1],
-                p.body.axes[2],
-                p.body.axes[3],
-                p.body.live.direction.radians()
-            );
-            println!("{:?} {:?}", p.render.live.shape, p.render.live.angle);
-            let (sin, cos) = p.render.live.angle.sin_cos();
-            let ox = p.render.live.shape.width / 2.0;
-            let oy = p.render.live.shape.height / 2.0;
-            let dx = -ox;
-            let dy = -oy;
-            let x = p.render.live.shape.x + ox;
-            let y = p.render.live.shape.y + oy;
-            let w = p.render.live.shape.width;
-            let h = p.render.live.shape.height;
-            let p0 = RenderVector2::new(x + dx * cos - dy * sin, y + dx * sin + dy * cos);
-            let p1 =
-                RenderVector2::new(x + (dx + w) * cos - dy * sin, y + (dx + w) * sin + dy * cos);
-            let p2 =
-                RenderVector2::new(x + dx * cos - (dy + h) * sin, y + dx * sin + (dy + h) * cos);
-            let p3 = RenderVector2::new(
-                x + (dx + w) * cos - (dy + h) * sin,
-                y + (dx + w) * sin + (dy + h) * cos,
-            );
-            println!("{:?} {:?} {:?} {:?}", p0, p1, p2, p3);
-        }
     }
 
     fn update_body_past(&self, entities: &mut Entities) {
@@ -100,12 +84,13 @@ impl LogicSystem {
         entities: &mut Entities,
         spawner: &Spawner,
         rng: &mut Rng,
+        misc: &mut Miscellaneous,
     ) {
         // TODO: fix quad or kd tree for collisions
 
         // projectile - player
         for projectile in entities.projectiles.iter_mut() {
-            for (pid, player) in entities.players.iter_mut().enumerate() {
+            for (pid, player) in entities.players.iter_mut().filter(|x| !x.dead).enumerate() {
                 // let's not shoot ourselves...
                 if projectile.pid == pid {
                     continue;
@@ -129,19 +114,17 @@ impl LogicSystem {
                 projectile.body.live = projectile.body.past;
                 projectile.body.dirty = true;
 
-                let rotation = projectile.body.live.direction;
+                let direction = projectile.body.live.direction;
                 let shape_alpha = projectile.body.calc_axes(false);
                 let speed = collisions::calculate_speed_to_collision(
-                    rotation,
+                    direction,
                     // projectile.motion.speed,
                     shape_alpha,
                     shape_beta,
                 );
 
-                let velocity = rotation * speed;
+                let velocity = direction * speed;
                 projectile.body.live.shape.point += velocity;
-                projectile.body.dirty = true;
-                projectile.body.calc_axes(false);
 
                 let explosion =
                     spawner.spawn_explosion_particles(projectile.body.live.shape.point, 32, rng);
@@ -152,12 +135,17 @@ impl LogicSystem {
                 }
 
                 player.dead = true;
-                // let explosion = spawner.spawn_explosion_particles(
-                //     &player.body.live.shape.get_centroid(),
-                //     128,
-                //     rng,
-                // );
-                //entities.explosions.extend(explosion);
+
+                let explosion =
+                    spawner.spawn_explosion_particles(player.body.live.shape.centroid(), 128, rng);
+                entities.explosions.extend(explosion);
+
+                misc.player_death_counters.push((
+                    pid,
+                    Counter {
+                        value: 100, // stay dead for 100 ticks
+                    },
+                ));
             }
         }
 
@@ -167,6 +155,7 @@ impl LogicSystem {
         //     let p1 = &mut left[i];
 
         //     for p2 in right.iter_mut() {
+
         //         p2.dead = false;
         //         p1.dead = false;
         //     }
@@ -199,9 +188,12 @@ impl LogicSystem {
             apply_velocity_triangle(&mut x.body, &x.motion);
             apply_deceleration(&mut x.motion, &self.deceleration);
 
-            // TODO: only recalculate if we have actually moved
-            x.body.dirty = true; //x.motion.speed != Flint::ZERO;
-                                 // x.body.calc_axes();
+            let has_moved_v1 = x.body.past.shape.v1 != x.body.live.shape.v1;
+            let has_moved_v2 = x.body.past.shape.v2 != x.body.live.shape.v2;
+            let has_moved_v3 = x.body.past.shape.v3 != x.body.live.shape.v3;
+            let has_moved_dir = x.body.past.direction != x.body.live.direction;
+
+            x.body.dirty = has_moved_v1 || has_moved_v2 || has_moved_v3 || has_moved_dir;
         });
 
         // projectiles
@@ -209,10 +201,10 @@ impl LogicSystem {
             apply_velocity_rectangle(&mut x.body, &x.motion);
             // no deceleration on projectiles
 
-            let has_moved_x = x.body.past.shape.point.x != x.body.live.shape.point.x;
-            let has_moved_y = x.body.past.shape.point.y != x.body.live.shape.point.y;
+            let has_moved = x.body.past.shape.point != x.body.live.shape.point;
+            let has_moved_dir = x.body.past.direction != x.body.live.direction;
 
-            x.body.dirty = has_moved_x || has_moved_y;
+            x.body.dirty = has_moved || has_moved_dir;
         });
 
         // particles - exhausts
@@ -302,6 +294,9 @@ impl LogicSystem {
 
     fn update_dead(&self, entities: &mut Entities) {
         // players
+        // TODO: as of right now, dead players should not be removed,
+        // it messes with the indexes/pids,
+        // probably need to rethink how this is handled
         //entities.players.retain(|x| !x.dead);
 
         // projectiles
@@ -334,6 +329,40 @@ impl LogicSystem {
             .stars
             .iter_mut()
             .for_each(|x| apply_counter_toggle(&mut x.counter, &mut x.toggle));
+    }
+
+    fn update_commands(
+        &self,
+        entities: &mut Entities,
+        spawner: &Spawner,
+        rng: &mut Rng,
+        cmds: &[Vec<Command>],
+    ) {
+        for (pid, cmds) in cmds.iter().enumerate() {
+            for cmd in cmds {
+                cmd.exec(pid, entities, spawner, rng);
+            }
+        }
+    }
+
+    fn update_respawn(
+        &self,
+        entities: &mut Entities,
+        map: &Map,
+        spawner: &Spawner,
+        misc: &mut Miscellaneous,
+    ) {
+        misc.player_death_counters.iter_mut().for_each(|x| {
+            let (pid, counter) = (x.0, &mut x.1);
+            counter.value -= 1;
+
+            if counter.value <= 0 {
+                let spawn = &map.spawns[pid];
+                entities.players[pid] = spawner.spawn_triship(spawn.point, spawn.direction);
+            }
+        });
+
+        misc.player_death_counters.retain(|x| x.1.value > 0);
     }
 }
 

@@ -4,6 +4,8 @@ use fixed::types::I20F12;
 
 pub type Flint = I20F12;
 
+pub struct Directions;
+
 #[derive(Clone, Copy, Debug)]
 pub struct FlintVec2 {
     pub x: Flint,
@@ -49,6 +51,50 @@ impl FlintRectangle {
     }
 }
 
+impl Directions {
+    pub const EAST: FlintVec2 = FlintVec2 {
+        x: Flint::ONE,
+        y: Flint::ZERO,
+    };
+
+    pub const NORTH: FlintVec2 = FlintVec2 {
+        x: Flint::ZERO,
+        y: Flint::NEG_ONE,
+    };
+
+    pub const SOUTH: FlintVec2 = FlintVec2 {
+        x: Flint::ZERO,
+        y: Flint::ONE,
+    };
+
+    pub const WEST: FlintVec2 = FlintVec2 {
+        x: Flint::NEG_ONE,
+        y: Flint::ZERO,
+    };
+
+    // TODO: can't use minus sign..
+
+    // pub const NORTHEAST: FlintVec2 = FlintVec2 {
+    //     x: Flint::FRAC_PI_4,
+    //     y: Flint::FRAC_PI_4,
+    // };
+
+    // pub const NORTHWEST: FlintVec2 = FlintVec2 {
+    //     x: -Flint::FRAC_PI_4,
+    //     y: Flint::FRAC_PI_4,
+    // };
+
+    // pub const SOUTHEAST: FlintVec2 = FlintVec2 {
+    //     x: -Flint::FRAC_PI_4,
+    //     y: -Flint::FRAC_PI_4,
+    // };
+
+    // pub const SOUTHWEST: FlintVec2 = FlintVec2 {
+    //     x: Flint::FRAC_PI_4,
+    //     y: -Flint::FRAC_PI_4,
+    // };
+}
+
 impl FlintVec2 {
     pub fn new(x: Flint, y: Flint) -> Self {
         FlintVec2 { x, y }
@@ -62,37 +108,8 @@ impl FlintVec2 {
         cordic::sin_cos(self.radians())
     }
 
-    pub const fn direction_north() -> FlintVec2 {
-        FlintVec2 {
-            x: Flint::ZERO,
-            y: Flint::NEG_ONE,
-        }
-    }
-
-    pub const fn direction_east() -> FlintVec2 {
-        FlintVec2 {
-            x: Flint::ONE,
-            y: Flint::ZERO,
-        }
-    }
-
-    pub const fn direction_south() -> FlintVec2 {
-        FlintVec2 {
-            x: Flint::ZERO,
-            y: Flint::ONE,
-        }
-    }
-
-    pub const fn direction_west() -> FlintVec2 {
-        FlintVec2 {
-            x: Flint::NEG_ONE,
-            y: Flint::ZERO,
-        }
-    }
-
     pub fn rotated(&self, rad: Flint, around: FlintVec2) -> FlintVec2 {
-        let cos = cordic::cos(rad);
-        let sin = cordic::sin(rad);
+        let (sin, cos) = cordic::sin_cos(rad);
         let x = self.x - around.x;
         let y = self.y - around.y;
 
@@ -151,7 +168,7 @@ impl FlintVec2 {
     }
 
     pub fn dot(&self, other: &FlintVec2) -> Flint {
-        Flint::from_num(self.x * other.x + self.y * other.y)
+        self.x * other.x + self.y * other.y
     }
 }
 
@@ -263,5 +280,11 @@ impl Sub for FlintVec2 {
             x: self.x - rhs.x,
             y: self.y - rhs.y,
         }
+    }
+}
+
+impl PartialEq for FlintVec2 {
+    fn eq(&self, other: &Self) -> bool {
+        self.x == other.x && self.y == other.y
     }
 }

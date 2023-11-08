@@ -60,7 +60,7 @@ impl From<&Body<FlintVec2>> for RenderBody<RenderVector2> {
     fn from(value: &Body<FlintVec2>) -> Self {
         Self {
             shape: value.live.shape.into(),
-            angle: value.live.direction.radians().to_num::<f32>(),
+            angle: value.live.direction.radians().to_num(),
         }
     }
 }
@@ -190,7 +190,7 @@ impl From<FlintRectangle> for RenderRectangle {
 
 impl From<&Body<FlintRectangle>> for RenderBody<RenderRectangle> {
     fn from(value: &Body<FlintRectangle>) -> Self {
-        let angle = value.live.direction.radians().to_num::<f32>();
+        let angle = value.live.direction.radians().to_num();
         let shape: RenderRectangle = value.live.shape.into();
 
         Self { shape, angle }

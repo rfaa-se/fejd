@@ -22,12 +22,8 @@ impl Spawner {
             shape: FlintTriangle::from_centroid(centroid, Flint::from_num(26), Flint::from_num(31)),
             direction,
         };
-        let body = Body {
-            live: shape,
-            past: shape,
-            dirty: true,
-            axes: Vec::new(),
-        };
+
+        let body = Body::<FlintTriangle>::new(shape);
 
         let render = Renderable::<RenderTriangle>::new(
             RenderColor::DIMGRAY,
@@ -39,7 +35,7 @@ impl Spawner {
             speed: Flint::from_num(0),
             max_speed: Flint::from_num(8),
             acceleration: Flint::from_num(0.2),
-            rotation_speed: Flint::from_num(0.18),
+            rotation_speed: Flint::from_num(0.08),
             // rotation_speed: Flint::from_num(0.02),
         };
 
@@ -66,12 +62,7 @@ impl Spawner {
             direction,
         };
 
-        let body = Body {
-            live: shape,
-            past: shape,
-            dirty: true,
-            axes: Vec::new(),
-        };
+        let body = Body::<FlintRectangle>::new(shape);
 
         let rec: RenderRectangle = body.live.shape.into();
         // not needed?
@@ -149,7 +140,7 @@ impl Spawner {
         }
     }
 
-    pub fn spawn_thruster_particles(
+    pub fn spawn_exhaust_particles(
         &self,
         centroid: FlintVec2,
         render_centroid: RenderVector2,
@@ -257,7 +248,8 @@ impl Spawner {
         for _ in 0..amount {
             let degrees = rng.i32(0..360);
             let radians = degrees * (Flint::PI / 180);
-            let direction = FlintVec2::new(cordic::cos(radians), cordic::sin(radians));
+            let (sin, cos) = cordic::sin_cos(radians);
+            let direction = FlintVec2::new(cos, sin);
             let rc = RenderVector2::new(centroid.x.to_num(), centroid.y.to_num());
             let speed = Flint::from_num(rng.i32(50..500)) / 100;
             let relative_speed = Flint::from_num(0);

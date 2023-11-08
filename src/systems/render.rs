@@ -29,6 +29,7 @@ impl RenderSystem {
         entities
             .players
             .iter()
+            .filter(|x| !x.dead)
             .for_each(|x| self.draw_triangle(rrh, map, cam, &x.render, delta));
 
         entities
@@ -53,6 +54,7 @@ impl RenderSystem {
         entities
             .players
             .iter()
+            .filter(|x| !x.dead)
             .for_each(|x| self.draw_triship_debug(rrh, map, cam, &x, delta));
 
         entities

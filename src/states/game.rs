@@ -6,7 +6,7 @@ use crate::{
     bus::Bus,
     commands::Command,
     engine::Engine,
-    math::{Flint, FlintVec2},
+    math::{Directions, Flint, FlintVec2},
     messages::{
         EngineMessage, EngineRequestMessage, Message, RequestMessage, Sender, StateRequestMessage,
     },
@@ -264,7 +264,7 @@ impl GameState {
                             // top left
                             Spawn {
                                 point: FlintVec2::new(Flint::from_num(100), Flint::from_num(100)),
-                                direction: FlintVec2::direction_west(),
+                                direction: Directions::WEST,
                             },
                             // top right
                             Spawn {
@@ -272,7 +272,7 @@ impl GameState {
                                     width - Flint::from_num(100),
                                     Flint::from_num(100),
                                 ),
-                                direction: FlintVec2::direction_south(),
+                                direction: Directions::SOUTH,
                             },
                             // bottom left
                             Spawn {
@@ -280,7 +280,7 @@ impl GameState {
                                     Flint::from_num(100),
                                     height - Flint::from_num(100),
                                 ),
-                                direction: FlintVec2::direction_east(),
+                                direction: Directions::EAST,
                             },
                             // bottom right
                             Spawn {
@@ -288,7 +288,7 @@ impl GameState {
                                     width - Flint::from_num(100),
                                     height - Flint::from_num(100),
                                 ),
-                                direction: FlintVec2::direction_north(),
+                                direction: Directions::NORTH,
                             },
                         ],
                         width,

@@ -3,10 +3,10 @@ use raylib::prelude::*;
 
 use crate::{
     commands::Command,
-    components::render::RenderColor,
+    components::{logic::Miscellaneous, render::RenderColor},
     engine::Engine,
     entities::Entities,
-    math::{Flint, FlintVec2},
+    math::{Directions, Flint, FlintVec2},
     misc::RaylibRenderHandle,
     spawner::Spawner,
     systems::{LogicSystem, RenderSystem},
@@ -38,6 +38,7 @@ pub struct World {
     render: RenderSystem,
     entities: Entities,
     spawner: Spawner,
+    misc: Miscellaneous,
 }
 
 impl World {
@@ -58,12 +59,15 @@ impl World {
             render: RenderSystem::new(),
             entities: Entities::new(),
             spawner: Spawner::new(),
+            misc: Miscellaneous::new(),
         }
     }
 
     pub fn init(&mut self, pid: usize, players: usize, seed: u64, map: Map) {
         // players must not be greater than the spawn points in the map
         // TODO: might be fixable without manual checks with const generics somehow, skip for now
+
+        // seed the rng so it's synced across clients
         self.rng.seed(seed);
 
         // randomize spawn points
@@ -75,6 +79,7 @@ impl World {
             let spawn = &map.spawns[*pid];
             let player = self.spawner.spawn_triship(spawn.point, spawn.direction);
             self.entities.players.push(player);
+            self.misc.player_map_spawn_indexes.push(*pid);
         }
 
         // spawn stars
@@ -85,7 +90,7 @@ impl World {
                 Flint::from_num(self.rng.i32((1 + width as i32)..(512 - width as i32))),
                 Flint::from_num(self.rng.i32((1 + height as i32)..(512 - height as i32))),
             );
-            let rotation = FlintVec2::direction_north();
+            let rotation = Directions::NORTH;
             let color = RenderColor::new(
                 self.rng.u8(180..255),
                 self.rng.u8(180..255),
@@ -118,6 +123,7 @@ impl World {
         self.map = None;
         self.tick = 0;
         self.entities.clear();
+        self.misc.clear();
     }
 
     pub fn update(&mut self, cmds: &[Vec<Command>]) {
@@ -131,16 +137,15 @@ impl World {
             None => return,
         };
 
-        // execute all player commands
-        for (pid, cmds) in cmds.iter().enumerate() {
-            for cmd in cmds.iter() {
-                cmd.exec(pid, &mut self.entities, &self.spawner, &mut self.rng);
-            }
-        }
-
         // update all logic systems
-        self.logic
-            .update(map, &mut self.entities, &self.spawner, &mut self.rng);
+        self.logic.update(
+            map,
+            &self.spawner,
+            &mut self.entities,
+            &mut self.rng,
+            &mut self.misc,
+            cmds,
+        );
 
         self.tick += 1;
     }
