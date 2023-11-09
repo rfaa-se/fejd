@@ -90,7 +90,12 @@ impl LogicSystem {
 
         // projectile - player
         for projectile in entities.projectiles.iter_mut() {
-            for (pid, player) in entities.players.iter_mut().filter(|x| !x.dead).enumerate() {
+            for (pid, player) in entities.players.iter_mut().enumerate() {
+                // don't do anything if either are already dead
+                if player.dead || projectile.dead {
+                    continue;
+                }
+
                 // let's not shoot ourselves...
                 if projectile.pid == pid {
                     continue;
@@ -127,7 +132,7 @@ impl LogicSystem {
                 projectile.body.live.shape.point += velocity;
 
                 let explosion =
-                    spawner.spawn_explosion_particles(projectile.body.live.shape.point, 32, rng);
+                    spawner.spawn_explosion_particles(projectile.body.live.shape.point, 8, rng);
                 entities.explosions.extend(explosion);
 
                 if player.life > 0 {
@@ -136,8 +141,27 @@ impl LogicSystem {
 
                 player.dead = true;
 
-                let explosion =
-                    spawner.spawn_explosion_particles(player.body.live.shape.centroid(), 128, rng);
+                // spawn three explosions, midway between centroid and each axis
+                let centroid = player.body.live.shape.centroid();
+
+                let two = Flint::from_num(2);
+                let rad = player.body.live.direction.radians();
+                let vec = vec![
+                    (centroid + player.body.live.shape.v1.rotated(rad, centroid)) / two,
+                    (centroid + player.body.live.shape.v2.rotated(rad, centroid)) / two,
+                    (centroid + player.body.live.shape.v3.rotated(rad, centroid)) / two,
+                    // player.body.live.shape.v1.rotated(rad, centroid),
+                    // player.body.live.shape.v2.rotated(rad, centroid),
+                    // player.body.live.shape.v3.rotated(rad, centroid),
+                ];
+
+                for v in vec {
+                    let explosion = spawner.spawn_explosion_particles(v, 32, rng);
+                    entities.explosions.extend(explosion);
+                }
+
+                // spawn one big in the centroid as well
+                let explosion = spawner.spawn_explosion_particles(centroid, 64, rng);
                 entities.explosions.extend(explosion);
 
                 misc.player_death_counters.push((

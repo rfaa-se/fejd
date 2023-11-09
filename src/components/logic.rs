@@ -57,7 +57,7 @@ impl Body<FlintRectangle> {
         body
     }
 
-    pub fn calc_axes(&mut self, include_past_body: bool) -> &Vec<FlintVec2> {
+    pub fn calc_axes(&mut self, include_past_body: bool) -> &[FlintVec2] {
         if self.dirty {
             self.axes.clear();
 
@@ -163,18 +163,18 @@ impl Body<FlintTriangle> {
         body
     }
 
-    pub fn calc_axes(&mut self) -> &Vec<FlintVec2> {
+    pub fn calc_axes(&mut self) -> &[FlintVec2] {
         if self.dirty {
             self.axes.clear();
 
-            let centroid = self.live.shape.centroid();
-            let radians = self.live.direction.radians();
+            let cen = self.live.shape.centroid();
+            let rad = self.live.direction.radians();
 
             // TODO: v2, v1, v3, order matters here, why this order..?
             self.axes.append(&mut vec![
-                self.live.shape.v2.rotated(radians, centroid),
-                self.live.shape.v1.rotated(radians, centroid),
-                self.live.shape.v3.rotated(radians, centroid),
+                self.live.shape.v2.rotated(rad, cen),
+                self.live.shape.v1.rotated(rad, cen),
+                self.live.shape.v3.rotated(rad, cen),
             ]);
 
             self.dirty = false;
