@@ -5,6 +5,7 @@ use toml::Value;
 use engine::Engine;
 
 mod bus;
+mod collisions;
 mod commands;
 mod components;
 mod engine;

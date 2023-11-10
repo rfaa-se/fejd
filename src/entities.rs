@@ -9,8 +9,9 @@ use crate::{
 pub struct Entities {
     pub players: Vec<Triship>,
     pub projectiles: Vec<Projectile>,
-    pub particles: Vec<Particle>,
     pub stars: Vec<Star>,
+    pub exhausts: Vec<Particle>,
+    pub explosions: Vec<Particle>,
 }
 
 pub struct Triship {
@@ -52,19 +53,25 @@ impl Entities {
         Entities {
             players: Vec::new(),
             projectiles: Vec::new(),
-            particles: Vec::new(),
             stars: Vec::new(),
+            exhausts: Vec::new(),
+            explosions: Vec::new(),
         }
     }
 
     pub fn clear(&mut self) {
         self.players.clear();
         self.projectiles.clear();
-        self.particles.clear();
         self.stars.clear();
+        self.exhausts.clear();
+        self.explosions.clear();
     }
 
-    pub fn get_count(&self) -> usize {
-        self.players.len() + self.projectiles.len() + self.particles.len() + self.stars.len()
+    pub fn count(&self) -> usize {
+        self.players.len()
+            + self.projectiles.len()
+            + self.stars.len()
+            + self.exhausts.len()
+            + self.explosions.len()
     }
 }

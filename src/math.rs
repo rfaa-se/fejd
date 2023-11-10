@@ -1,8 +1,10 @@
-use std::ops::{Add, AddAssign, Mul, Sub};
+use std::ops::{Add, AddAssign, Div, Mul, Sub, SubAssign};
 
 use fixed::types::I20F12;
 
 pub type Flint = I20F12;
+
+pub struct Directions;
 
 #[derive(Clone, Copy, Debug)]
 pub struct FlintVec2 {
@@ -33,13 +35,64 @@ pub struct FlintRectangle {
 }
 
 impl FlintRectangle {
-    pub fn from_centroid(cen: &FlintVec2, width: Flint, height: Flint) -> Self {
+    pub fn from_centroid(cen: FlintVec2, width: Flint, height: Flint) -> Self {
         Self {
             point: FlintVec2::new(cen.x - width / 2, cen.y - height / 2),
             width,
             height,
         }
     }
+
+    pub fn centroid(&self) -> FlintVec2 {
+        FlintVec2 {
+            x: self.point.x + self.width / 2,
+            y: self.point.y + self.height / 2,
+        }
+    }
+}
+
+impl Directions {
+    pub const EAST: FlintVec2 = FlintVec2 {
+        x: Flint::ONE,
+        y: Flint::ZERO,
+    };
+
+    pub const NORTH: FlintVec2 = FlintVec2 {
+        x: Flint::ZERO,
+        y: Flint::NEG_ONE,
+    };
+
+    pub const SOUTH: FlintVec2 = FlintVec2 {
+        x: Flint::ZERO,
+        y: Flint::ONE,
+    };
+
+    pub const WEST: FlintVec2 = FlintVec2 {
+        x: Flint::NEG_ONE,
+        y: Flint::ZERO,
+    };
+
+    // TODO: can't use minus sign..
+
+    // pub const NORTHEAST: FlintVec2 = FlintVec2 {
+    //     x: Flint::FRAC_PI_4,
+    //     y: Flint::FRAC_PI_4,
+    // };
+
+    // pub const NORTHWEST: FlintVec2 = FlintVec2 {
+    //     x: -Flint::FRAC_PI_4,
+    //     y: Flint::FRAC_PI_4,
+    // };
+
+    // pub const SOUTHEAST: FlintVec2 = FlintVec2 {
+    //     x: -Flint::FRAC_PI_4,
+    //     y: -Flint::FRAC_PI_4,
+    // };
+
+    // pub const SOUTHWEST: FlintVec2 = FlintVec2 {
+    //     x: Flint::FRAC_PI_4,
+    //     y: -Flint::FRAC_PI_4,
+    // };
 }
 
 impl FlintVec2 {
@@ -51,37 +104,12 @@ impl FlintVec2 {
         cordic::atan2(self.y, self.x)
     }
 
-    pub const fn rotation_north() -> FlintVec2 {
-        FlintVec2 {
-            x: Flint::ZERO,
-            y: Flint::NEG_ONE,
-        }
+    pub fn sin_cos(&self) -> (Flint, Flint) {
+        cordic::sin_cos(self.radians())
     }
 
-    pub const fn rotation_east() -> FlintVec2 {
-        FlintVec2 {
-            x: Flint::ONE,
-            y: Flint::ZERO,
-        }
-    }
-
-    pub const fn rotation_south() -> FlintVec2 {
-        FlintVec2 {
-            x: Flint::ZERO,
-            y: Flint::ONE,
-        }
-    }
-
-    pub const fn rotation_west() -> FlintVec2 {
-        FlintVec2 {
-            x: Flint::NEG_ONE,
-            y: Flint::ZERO,
-        }
-    }
-
-    pub fn rotate(&self, rad: &Flint, around: &FlintVec2) -> FlintVec2 {
-        let cos = cordic::cos(*rad);
-        let sin = cordic::sin(*rad);
+    pub fn rotated(&self, rad: Flint, around: FlintVec2) -> FlintVec2 {
+        let (sin, cos) = cordic::sin_cos(rad);
         let x = self.x - around.x;
         let y = self.y - around.y;
 
@@ -91,30 +119,36 @@ impl FlintVec2 {
         }
     }
 
-    pub fn rotate_180(&self) -> FlintVec2 {
+    pub fn rotated_180(&self) -> FlintVec2 {
         FlintVec2 {
             x: self.x * -1,
             y: self.y * -1,
         }
     }
 
-    pub fn rotate_90(&self) -> FlintVec2 {
+    pub fn rotated_90(&self) -> FlintVec2 {
         FlintVec2 {
             x: self.y,
             y: self.x * -1,
         }
     }
 
-    pub fn rotate_270(&self) -> FlintVec2 {
+    pub fn rotated_270(&self) -> FlintVec2 {
         FlintVec2 {
             x: self.y * -1,
             y: self.x,
         }
     }
 
-    pub fn _normalize(&self) -> FlintVec2 {
-        let mag = self._magnitude();
-        // TODO: possible div by 0
+    pub fn normalized(&self) -> FlintVec2 {
+        let mag = self.magnitude();
+
+        if mag == Flint::ZERO {
+            return FlintVec2 {
+                x: Flint::ZERO,
+                y: Flint::ZERO,
+            };
+        }
 
         FlintVec2 {
             x: self.x / mag,
@@ -122,13 +156,24 @@ impl FlintVec2 {
         }
     }
 
-    pub fn _magnitude(&self) -> Flint {
+    pub fn perpendicular(&self) -> FlintVec2 {
+        FlintVec2 {
+            x: -self.y,
+            y: self.x,
+        }
+    }
+
+    pub fn magnitude(&self) -> Flint {
         cordic::sqrt(self.x * self.x + self.y * self.y)
+    }
+
+    pub fn dot(&self, other: &FlintVec2) -> Flint {
+        self.x * other.x + self.y * other.y
     }
 }
 
 impl FlintTriangle {
-    pub fn from_centroid(cen: &FlintVec2, width: Flint, height: Flint) -> Self {
+    pub fn from_centroid(cen: FlintVec2, width: Flint, height: Flint) -> Self {
         //          up 90
         // left 0            right 180
         //         down 270
@@ -161,7 +206,7 @@ impl FlintTriangle {
         }
     }
 
-    pub fn get_centroid(&self) -> FlintVec2 {
+    pub fn centroid(&self) -> FlintVec2 {
         FlintVec2 {
             x: ((self.v1.x + self.v2.x + self.v3.x) / 3),
             y: ((self.v1.y + self.v2.y + self.v3.y) / 3),
@@ -176,6 +221,17 @@ impl Mul<Flint> for FlintVec2 {
         FlintVec2 {
             x: self.x * rhs,
             y: self.y * rhs,
+        }
+    }
+}
+
+impl Div<Flint> for FlintVec2 {
+    type Output = FlintVec2;
+
+    fn div(self, rhs: Flint) -> Self::Output {
+        FlintVec2 {
+            x: self.x / rhs,
+            y: self.y / rhs,
         }
     }
 }
@@ -198,6 +254,13 @@ impl AddAssign for FlintVec2 {
     }
 }
 
+impl SubAssign for FlintVec2 {
+    fn sub_assign(&mut self, rhs: Self) {
+        self.x -= rhs.x;
+        self.y -= rhs.y;
+    }
+}
+
 impl Add for FlintVec2 {
     type Output = FlintVec2;
 
@@ -217,5 +280,11 @@ impl Sub for FlintVec2 {
             x: self.x - rhs.x,
             y: self.y - rhs.y,
         }
+    }
+}
+
+impl PartialEq for FlintVec2 {
+    fn eq(&self, other: &Self) -> bool {
+        self.x == other.x && self.y == other.y
     }
 }

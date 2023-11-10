@@ -6,7 +6,7 @@ use crate::{
     bus::Bus,
     commands::Command,
     engine::Engine,
-    math::{Flint, FlintVec2},
+    math::{Directions, Flint, FlintVec2},
     messages::{
         EngineMessage, EngineRequestMessage, Message, RequestMessage, Sender, StateRequestMessage,
     },
@@ -28,6 +28,7 @@ pub struct GameState {
     rcmds: HashMap<u64, ReceivedCommands>,
     empty: Vec<Vec<Command>>,
     debug: bool,
+    paused: bool,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
@@ -37,6 +38,7 @@ enum Action {
     Command(Command),
     GetDebug,
     ToggleDebug,
+    TogglePause,
 }
 
 struct ReceivedCommands {
@@ -100,6 +102,7 @@ impl GameState {
             rcmds: HashMap::new(),
             empty: Vec::new(),
             debug: false,
+            paused: false,
         }
     }
 
@@ -126,6 +129,7 @@ impl GameState {
         self.tick = 0;
         self.init = false;
         self.stalling = false;
+        self.paused = false;
     }
 
     pub fn input(&mut self, rh: &RaylibHandle) {
@@ -135,6 +139,14 @@ impl GameState {
 
         if rh.is_key_pressed(KeyboardKey::KEY_D) {
             self.actions.insert(Action::ToggleDebug);
+        }
+        if rh.is_key_pressed(KeyboardKey::KEY_P) {
+            self.actions.insert(Action::TogglePause);
+        }
+
+        // TODO: make sure we don't insert duplicate commands
+        if self.paused {
+            return;
         }
 
         if rh.is_key_down(KeyboardKey::KEY_LEFT) {
@@ -169,7 +181,7 @@ impl GameState {
     pub fn update(&mut self, bus: &mut Bus) {
         self.action(bus);
 
-        if !self.init {
+        if !self.init || self.paused {
             return;
         }
 
@@ -213,6 +225,8 @@ impl GameState {
             return;
         }
 
+        let delta = if self.paused { 1.0 } else { delta };
+
         self.world.draw(rrh, self.debug, delta);
 
         // if self.debug {
@@ -242,15 +256,15 @@ impl GameState {
             match action {
                 Action::Initialize { pid, players, seed } => {
                     // TODO: map should be configurable
-                    let width = Flint::from_num(1600);
-                    let height = Flint::from_num(1400);
+                    let width = Flint::from_num(800);
+                    let height = Flint::from_num(600);
                     let map = Map {
                         // four spawn points for this map
                         spawns: vec![
                             // top left
                             Spawn {
                                 point: FlintVec2::new(Flint::from_num(100), Flint::from_num(100)),
-                                rotation: FlintVec2::rotation_west(),
+                                direction: Directions::WEST,
                             },
                             // top right
                             Spawn {
@@ -258,7 +272,7 @@ impl GameState {
                                     width - Flint::from_num(100),
                                     Flint::from_num(100),
                                 ),
-                                rotation: FlintVec2::rotation_south(),
+                                direction: Directions::SOUTH,
                             },
                             // bottom left
                             Spawn {
@@ -266,7 +280,7 @@ impl GameState {
                                     Flint::from_num(100),
                                     height - Flint::from_num(100),
                                 ),
-                                rotation: FlintVec2::rotation_east(),
+                                direction: Directions::EAST,
                             },
                             // bottom right
                             Spawn {
@@ -274,7 +288,7 @@ impl GameState {
                                     width - Flint::from_num(100),
                                     height - Flint::from_num(100),
                                 ),
-                                rotation: FlintVec2::rotation_north(),
+                                direction: Directions::NORTH,
                             },
                         ],
                         width,
@@ -310,6 +324,9 @@ impl GameState {
                     bus.send(Message::Request(RequestMessage::Engine(
                         EngineRequestMessage::SetDebug(!self.debug),
                     )));
+                }
+                Action::TogglePause => {
+                    self.paused = !self.paused;
                 }
             }
         }

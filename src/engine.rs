@@ -58,6 +58,9 @@ impl Engine {
             }
         };
 
+        // smooths things out
+        // rrt.set_texture_filter(rt, TextureFilter::TEXTURE_FILTER_BILINEAR);
+
         // initialize everything before we start
         self.init();
 
