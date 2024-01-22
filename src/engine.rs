@@ -1,8 +1,9 @@
 use raylib::prelude::*;
 
-use crate::logs::LogManager;
 use crate::{
+    audio::AudioManager,
     bus::Bus,
+    logs::LogManager,
     messages::{EngineRequestMessage, Message, RequestMessage, Sender, StateRequestMessage},
     states::{State, StateManager},
 };
@@ -21,17 +22,18 @@ pub struct Managers {
     pub engine: EngineManager,
     pub log: LogManager,
     pub state: StateManager,
+    pub audio: AudioManager,
 }
 
 impl Engine {
     pub const DEBUG_TEXT_COLOR: Color = Color::WHITESMOKE;
 
-    pub const WIDTH: i32 = 1280;
-    pub const HEIGHT: i32 = 720;
+    // pub const WIDTH: i32 = 1280;
+    // pub const HEIGHT: i32 = 720;
     // pub const WIDTH: i32 = 960;
     // pub const HEIGHT: i32 = 540;
-    // pub const WIDTH: i32 = 640;
-    // pub const HEIGHT: i32 = 360;
+    pub const WIDTH: i32 = 640;
+    pub const HEIGHT: i32 = 360;
 
     pub fn new() -> Self {
         Engine {
@@ -39,6 +41,7 @@ impl Engine {
                 engine: EngineManager::new(),
                 log: LogManager::new(),
                 state: StateManager::new(),
+                audio: AudioManager::new(),
             },
             bus: Bus::new(),
             ticks: 0,
@@ -121,6 +124,10 @@ impl Engine {
         self.managers
             .state
             .update(self.bus.with_sender(Sender::State));
+
+        self.managers
+            .audio
+            .update(self.bus.with_sender(Sender::Audio));
 
         self.bus.update(&mut self.managers);
     }

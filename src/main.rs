@@ -4,6 +4,7 @@ use toml::Value;
 
 use engine::Engine;
 
+mod audio;
 mod bus;
 mod collisions;
 mod commands;

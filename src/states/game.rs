@@ -202,15 +202,17 @@ impl GameState {
             }
         };
 
-        self.world.update(&cmds);
+        self.world.update(&cmds, bus.with_sender(Sender::World));
         self.tick += 1;
 
         self.cmds.clear();
     }
 
-    pub fn message(&mut self, _sender: &Sender, msg: &Message) {
+    pub fn message(&mut self, sender: &Sender, msg: &Message) {
         // TODO: once we get all commands for the current tick,
         // set stalling to false
+
+        self.world.message(sender, msg);
 
         match msg {
             Message::Engine(EngineMessage::DebugGet(debug) | EngineMessage::DebugSet(debug)) => {

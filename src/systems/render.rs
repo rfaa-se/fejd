@@ -35,6 +35,7 @@ impl RenderSystem {
         entities
             .projectiles
             .iter()
+            .filter(|x| !x.dead)
             .for_each(|x| self.draw_rectangle(rrh, map, cam, &x.render, delta));
 
         entities
@@ -60,6 +61,7 @@ impl RenderSystem {
         entities
             .projectiles
             .iter()
+            .filter(|x| !x.dead)
             .for_each(|x| self.draw_projectile_debug(rrh, map, cam, &x, delta));
 
         entities

@@ -2,11 +2,13 @@ use fastrand::Rng;
 use raylib::prelude::*;
 
 use crate::{
+    bus::Bus,
     commands::Command,
     components::{logic::Miscellaneous, render::RenderColor},
     engine::Engine,
     entities::Entities,
     math::{Directions, Flint, FlintVec2},
+    messages::{Message, Sender},
     misc::RaylibRenderHandle,
     spawner::Spawner,
     systems::{LogicSystem, RenderSystem},
@@ -126,7 +128,7 @@ impl World {
         self.misc.clear();
     }
 
-    pub fn update(&mut self, cmds: &[Vec<Command>]) {
+    pub fn update(&mut self, cmds: &[Vec<Command>], bus: &mut Bus) {
         // let _pid = match self.pid {
         //     Some(pid) => pid,
         //     None => return,
@@ -145,9 +147,14 @@ impl World {
             &mut self.rng,
             &mut self.misc,
             cmds,
+            bus.with_sender(Sender::Logic),
         );
 
         self.tick += 1;
+    }
+
+    pub fn message(&mut self, sender: &Sender, msg: &Message) {
+        self.logic.message(sender, msg);
     }
 
     pub fn draw(&mut self, rrh: &mut RaylibRenderHandle, debug: bool, delta: f32) {

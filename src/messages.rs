@@ -1,4 +1,4 @@
-use crate::states::State;
+use crate::{entities::EntityTypeIndex, states::State};
 
 #[derive(Debug, Copy, Clone)]
 pub enum Sender {
@@ -8,6 +8,9 @@ pub enum Sender {
     State,
     Menu,
     Game,
+    World,
+    Logic,
+    Audio,
 }
 
 #[derive(Debug)]
@@ -15,6 +18,8 @@ pub enum Message {
     Engine(EngineMessage),
     State(StateMessage),
     Request(RequestMessage),
+    Logic(LogicMessage),
+    Audio(AudioMessage),
 }
 
 #[derive(Debug)]
@@ -45,4 +50,15 @@ pub enum StateMessage {
 #[derive(Debug)]
 pub enum StateRequestMessage {
     SetState(State),
+}
+
+#[derive(Debug)]
+pub enum LogicMessage {
+    Death(EntityTypeIndex),
+    Collision(EntityTypeIndex, EntityTypeIndex),
+}
+
+#[derive(Debug)]
+pub enum AudioMessage {
+    Play(EntityTypeIndex),
 }

@@ -6,8 +6,15 @@ use crate::{
     math::{Flint, FlintRectangle, FlintTriangle, FlintVec2},
 };
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum EntityTypeIndex {
+    Triship(usize),
+    Projectile(usize),
+    // Particle(usize),
+}
+
 pub struct Entities {
-    pub players: Vec<Triship>,
+    pub players: Vec<Triship>, // TODO: should be triships
     pub projectiles: Vec<Projectile>,
     pub stars: Vec<Star>,
     pub exhausts: Vec<Particle>,

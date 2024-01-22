@@ -23,6 +23,7 @@ impl Bus {
             managers.log.message(&sender, &msg);
             managers.engine.message(&sender, &msg);
             managers.state.message(&sender, &msg);
+            managers.audio.message(&sender, &msg);
         }
     }
 
